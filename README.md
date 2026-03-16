@@ -2,11 +2,13 @@
 <p align="center">
   <img src="resources/vantage-vue-wireless-integrated-sensor-suite-weather-station-6357.jpg" width="225" alt="Davis #6357 ISS">
 </p>
+
 ## Overview
 A modular weather station using Davis mechanical components, Teensy + RFM69 telemetry, and APRS/web integration.  This Project essentially Replaces the harness assembly inside the Davis ISS
 <p align="center">
   <img src="resources/vantage-vue-harness-assy.jpg" width="225" alt="Replace The Harness Assy.">
 </p>
+
 ## Architecture
 - Re-use Davis ISS enclosure
 - Re-use ISS tipping spoon Rain Sensor
