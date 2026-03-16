@@ -44,7 +44,7 @@ A modular weather station using Davis mechanical components, Teensy + RFM69 tele
 ## Status
 - Receiver test based on VPtools RXtest.ino to validate and decode Davis packets on Teensy 3.x hardware.  (done! 3/14/2026)
 - Transmitter test in progress based on VPtools TX_Test.ino
-- Hardware: Breadboard with Teensy 3.2 being used for TX and TX tests. Havw some hardware to order Teensy 4.x boards, antennas, angle sensor breakout, hall-effect sensors,  ESP32 board, solar charge breakout board.  Will add hardware and datasheet folders.  
+- Hardware: Breadboard with Teensy 3.2 being used for RX and TX tests. Have some hardware to order:  Teensy 4.x boards, antennas, angle sensor breakout, hall-effect sensors,  ESP32 board, solar charge breakout board.  Will add hardware and datasheet folders.  
 
 ## 1. Core Objectives
 
