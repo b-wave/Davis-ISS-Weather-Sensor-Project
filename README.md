@@ -44,7 +44,7 @@ A modular weather station using Davis mechanical components, Teensy + RFM69 tele
 ## Status
 - Receiver test based on VPtools RXtest.ino to validate and decode Davis packets on Teensy 3.x hardware.  (done! 3/14/2026)
 - Transmitter test in progress based on VPtools TX_Test.ino
-- Parts ordered: Teensy board, antennas, angle sensor breakout, hall-effect sensors,  ESP32 board, solar charge breakout board.  
+- Hardware: Breadboard with Teensy 3.2 being used for TX and TX tests. Havw some hardware to order Teensy 4.x boards, antennas, angle sensor breakout, hall-effect sensors,  ESP32 board, solar charge breakout board.  Will add hardware and datasheet folders.  
 
 ## 1. Core Objectives
 
@@ -82,7 +82,7 @@ A modular weather station using Davis mechanical components, Teensy + RFM69 tele
 - Solar Charge controller may reuse existing solar panel but power supply must be redesigned to support the new processors.
 - NOTE: Limited airflow; thermal management required - replacing low powered Davis Processor
 
-## 3. Proposed Electronics Hardware
+## 3. Proposed Electronics
 
 - **Brain #1**: Teensy 4.x (Real-time Controller)
 - **Brain #2**: ESP32 (Web and Internet Gateway) 
