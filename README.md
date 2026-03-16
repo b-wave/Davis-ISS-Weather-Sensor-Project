@@ -22,7 +22,7 @@ A modular weather station using Davis mechanical components, Teensy + RFM69 tele
 
 ## Goals
 - Davis packet compatibility
-- Engineering telemetry (battery temp, RSSI, charge state)
+- Engineering telemetry (battery temp, radio temp, enclosure temp, solar cell voltage, battery charge state)
 - Robust desert deployment
 - Modular, open-source design
 
