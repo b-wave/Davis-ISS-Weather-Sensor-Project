@@ -60,13 +60,21 @@ A modular weather station using Davis mechanical components, Teensy + RFM69 tele
 
 - Use existing Davis ISS enclosure
 - The AS5600 12-bit Magnetic encoder must above direction sensor
+  <p align="center">
+  <img src="resources/davis_wind_direction_sensoe.jpg" width="225" alt="wind directio sensor">
+</p>
+  
 - Wind Speed uses Vantage Vue Wind Speed Cartridge must mount TI DRV5033 Hall Sensor Switch near magnet.
   <p align="center">
-  <img src="resources/7345-Vantage-Vue-Wind-Speed-Cartridge_.jpg" width="225" alt="Note the Rotating magnet mounted to axel">
+  <img src="resources/7345-Vantage-Vue-Wind-Speed-Cartridge_.jpg" width="225" alt="wind speed sensor">
 </p>
+
 - Radome space available for vertical antenna. 
+
 - Tipping spoon rain (Use: TI DRV5033 Hall Sensor Switch)
+  
 - Configuration: LED and existing Magnet/switch (Use: TI DRV5033 Hall Sensor Switch)
+  
 - Solar Charge controller may reuse existing solar panel but power supply must be redesigned to support the new processors.
 - NOTE: Limited airflow; thermal management required - replacing low powered Davis Processor
 
