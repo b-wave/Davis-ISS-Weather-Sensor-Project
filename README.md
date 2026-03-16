@@ -42,9 +42,9 @@ A modular weather station using Davis mechanical components, Teensy + RFM69 tele
 - Need to address sealed electronics enclosure with thermal constraints
 
 ## Status
-- Receiver validated and decoding Davis packets
-- Transmitter repo in progress
-- Parts ordered: Teensys, antennas, angle sensor breakout
+- Receiver test based on VPtools RXtest.ino to validate and decode Davis packets on Teensy 3.x hardware.  (done! 3/14/2026)
+- Transmitter test in progress based on VPtools TX_Test.ino
+- Parts ordered: Teensy board, antennas, angle sensor breakout, hall-effect sensors,  ESP32 board, solar charge breakout board.  
 
 ## 1. Core Objectives
 
@@ -72,6 +72,10 @@ A modular weather station using Davis mechanical components, Teensy + RFM69 tele
 - Radome space available for vertical antenna. 
 
 - Tipping spoon rain (Use: TI DRV5033 Hall Sensor Switch)
+
+  <p align="center">
+  <img src="resources/davis_rain_sensor.jpg" width="225" alt="rain sensor">
+</p>
   
 - Configuration: LED and existing Magnet/switch (Use: TI DRV5033 Hall Sensor Switch)
   
