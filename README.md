@@ -1,8 +1,12 @@
 # Custom Davis-Integrated Weather Station
-
+<p align="center">
+  <img src="resources/vantage-vue-wireless-integrated-sensor-suite-weather-station-6357.jpg" width="225" alt="Davis #6357 ISS">
+</p>
 ## Overview
-A modular weather station using Davis mechanical components, Teensy + RFM69 telemetry, and APRS/web integration.
-
+A modular weather station using Davis mechanical components, Teensy + RFM69 telemetry, and APRS/web integration.  This Project essentially Replaces the harness assembly inside the Davis ISS
+<p align="center">
+  <img src="resources/vantage-vue-harness-assy.jpg" width="225" alt="Replace The Harness Assy.">
+</p>
 ## Architecture
 - Re-use Davis ISS enclosure
 - Re-use ISS tipping spoon Rain Sensor
@@ -54,7 +58,10 @@ A modular weather station using Davis mechanical components, Teensy + RFM69 tele
 
 - Use existing Davis ISS enclosure
 - The AS5600 12-bit Magnetic encoder must above direction sensor
-- Wind Speed uses Vantage Vue Wind Speed Cartridge must mount TI DRV5033 Hall Sensor Switch near magnet. 
+- Wind Speed uses Vantage Vue Wind Speed Cartridge must mount TI DRV5033 Hall Sensor Switch near magnet.
+  <p align="center">
+  <img src="resources/7345-Vantage-Vue-Wind-Speed-Cartridge_.jpg" width="225" alt="Note the Rotating magnet mounted to axel">
+</p>
 - Radome space available for vertical antenna. 
 - Tipping spoon rain (Use: TI DRV5033 Hall Sensor Switch)
 - Configuration: LED and existing Magnet/switch (Use: TI DRV5033 Hall Sensor Switch)
