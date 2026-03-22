@@ -1,18 +1,11 @@
-// Sample usage of the DavisRFM69 library to sniff the packets from a Davis Instruments
-// wireless Integrated Sensor Suite (ISS), demostrating compatibility between the RFM69
-// and the TI CC1020 transmitter used in that hardware.  Packets received from the ISS are
-// passes through to the serial port.  This code retains some of the debugging
-// functionality of the LowPowerLabs Gateway sketch, on which this code is based.
-//
-// This is part of the DavisRFM69 library from https://github.com/dekay/DavisRFM69
-// (C) DeKay 2014 dekaymail@gmail.com
-// Example released under the MIT License (http://opensource.org/licenses/mit-license.php)
-// Get the RFM69 and SPIFlash library at: https://github.com/LowPowerLab/
-//
-// This program has been developed on a Moteino R3 Arduino clone with integrated RFM69W
-// transceiver module.  Note that RFM12B-based modules will not work.  See the README
-// for more details.
 /*
+This is a demo of a Teensy 3.2 using an RFM69 to Recieve (snoop) packets
+using the Davis ISS protocol
+
+REVISIONS: 
+0.2  Renamed library to avoid miscompiling with the original 
+
+0.1 Uses Teensy and an RFM69 4/20/2019 sbotts
  * first Teensey Packet!
  * 4/20/2019 6:00P
  * 
@@ -22,9 +15,26 @@ No SPI Flash Found.
 Waiting for signal. This can take some time...
 0 - Data: 92 01 C3 07 D1 6D D9 40 FF FF   RSSI: -88
 
- */
 
-#include <DavisRFM69.h>
+0.0 Original code (C) DeKay 2014 dekaymail@gmail.com
+ NOTES: This Sample usage of the DavisRFM69 library to sniff the packets from a Davis Instruments
+ wireless Integrated Sensor Suite (ISS), demostrating compatibility between the RFM69
+ and the TI CC1020 transmitter used in that hardware.  Packets received from the ISS are
+ passes through to the serial port.  This code retains some of the debugging
+ functionality of the LowPowerLabs Gateway sketch, on which this code is based.
+
+ This is part of the DavisRFM69 library from https://github.com/dekay/DavisRFM69
+ (C) DeKay 2014 dekaymail@gmail.com
+ Example released under the MIT License (http://opensource.org/licenses/mit-license.php)
+ Get the RFM69 and SPIFlash library at: https://github.com/LowPowerLab/
+
+ This program has been developed on a Moteino R3 Arduino clone with integrated RFM69W
+ transceiver module.  Note that RFM12B-based modules will not work.  See the README
+ for more details.
+*/
+
+//#include <DavisRFM69.h>
+#include  <DavisRFM69_Teensy.h>
 #include <SPI.h>
 #include <SPIFlash.h>
 
@@ -43,7 +53,7 @@ Waiting for signal. This can take some time...
 
 //  #define LED           14
 //#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
-#define LED          9  // Moteinos have LEDs on D9
+#define LED          13  // Moteinos have LEDs on D9
 #define SERIAL_BAUD   9600
 #define PACKET_INTERVAL 2555
 boolean strmon = false;       // Print the packet when received?
@@ -158,7 +168,6 @@ void loop() {
     if ((crc == (word(radio.DATA[6], radio.DATA[7]))) && (crc != 0)) {
       packetStats.receivedStreak++;
       hopCount = 1;
-  blink(LED,10);
     } else {
       packetStats.crcErrors++;
       packetStats.receivedStreak = 0;
