@@ -21,6 +21,8 @@ volatile bool     DavisRFM69::_packetReceived = false;
 volatile uint8_t  DavisRFM69::CHANNEL = 0;
 volatile int16_t  DavisRFM69::RSSI;   // RSSI measured immediately after payload reception
 DavisRFM69*       DavisRFM69::selfPointer;
+// Added Change 2 by SB 3/17/2026
+bool DavisRFM69::txMode = false;
 
 void DavisRFM69::initialize()
 {
@@ -72,8 +74,7 @@ void DavisRFM69::initialize()
     /* 0x3e - 0x4d  AES Key not used in this implementation */
     /* 0x6F */ { REG_TESTDAGC, RF_DAGC_IMPROVED_LOWBETA0 }, // // TODO: Should use LOWBETA_ON, but having trouble getting it working
     /* 0x71 */ { REG_TESTAFC, 0 }, // AFC Offset for low mod index systems
-    {255, 0}
-  };
+    {255, 0}Frame
 
   digitalWrite(_slaveSelectPin, HIGH);
   pinMode(_slaveSelectPin, OUTPUT);
@@ -92,6 +93,43 @@ void DavisRFM69::initialize()
 
   selfPointer = this;
 }
+// **Change 2.1**sb 3/17/2026
+void DavisRFM69::setTxMode(bool mode)
+{
+  if (mode) {
+    txMode = true;
+    // Davis ISS TX deviation and framing
+    writeReg(REG_FDEVMSB, RF_FDEVMSB_9900);
+    writeReg(REG_FDEVLSB, RF_FDEVLSB_9900);
+    writeReg(REG_PREAMBLELSB, 0);  // we send preamble manually
+    writeReg(REG_SYNCCONFIG, RF_SYNC_OFF);
+    // 4x FF + 6x AA + 2 sync + 6 data + 2 CRC + 2 repeater + 1 extra = 23 bytes
+    writeReg(REG_PAYLOADLENGTH, DAVIS_PACKET_LEN + 13);
+    writeReg(REG_FIFOTHRESH, RF_FIFOTHRESH_TXSTART_FIFOTHRESH | (DAVIS_PACKET_LEN + 13 - 1));
+  } else {
+    // Back to normal RX settings (your existing config)
+    writeReg(REG_FDEVMSB, RF_FDEVMSB_4800);
+    writeReg(REG_FDEVLSB, RF_FDEVLSB_4800);
+    writeReg(REG_PREAMBLELSB, 4);
+    writeReg(REG_SYNCCONFIG, RF_SYNC_ON | RF_SYNC_FIFOFILL_AUTO | RF_SYNC_SIZE_2 | RF_SYNC_TOL_2);
+    writeReg(REG_PAYLOADLENGTH, DAVIS_PACKET_LEN);
+    txMode = false;
+  }
+}
+// ***Change 2.2***sb 3/17/2026
+void DavisRFM69::send(const uint8_t* buffer, uint8_t channel)
+{
+  // Simple, blocking Davis TX: no timers, no hopping logic
+  setTxMode(true);
+  writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFB) | RF_PACKET2_RXRESTART); // avoid RX deadlocks
+  setChannel(channel);
+  sendFrame(buffer);
+  setTxMode(false);
+  // Optionally return to RX on same channel:
+  receiveBegin();
+}
+
+
 
 void DavisRFM69::interruptHandler() {
   RSSI = readRSSI();  // Read up front when it is most likely the carrier is still up
@@ -125,32 +163,70 @@ void DavisRFM69::send(const void* buffer, uint8_t bufferSize)
   while (!canSend()) receiveDone();
   sendFrame(buffer, bufferSize);
 }
-
-void DavisRFM69::sendFrame(const void* buffer, uint8_t bufferSize)
+//  **Change 2.3 Replaced old sendFrame sb 3/17/2026 with this: 
+void DavisRFM69::sendFrame(const uint8_t* buffer)
 {
-  setMode(RF69_MODE_STANDBY); //turn off receiver to prevent reception while filling fifo
-  while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // Wait for ModeReady
+  setMode(RF69_MODE_STANDBY); // turn off receiver to prevent reception while filling fifo
+  uint32_t t = micros();
+  // Wait for ModeReady using timeout
+  while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00) {
+    if (micros() - t > SPI_OP_TIMEOUT) return;
+  }
   writeReg(REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_00); // DIO0 is "Packet Sent"
-  if (bufferSize > DAVIS_PACKET_LEN) bufferSize = DAVIS_PACKET_LEN;
 
-  uint16_t crc = crc16_ccitt((volatile uint8_t *)buffer, 6);
-  //write to FIFO
+  // CRC over first 6 bytes (no repeater info)
+  uint16_t crc = crc16_ccitt((volatile uint8_t*)buffer, 6);
+
+  // Write full Davis-like frame to FIFO
   select();
   SPI.transfer(REG_FIFO | 0x80);
 
-  for (uint8_t i = 0; i < bufferSize; i++)
-    SPI.transfer(reverseBits(((uint8_t*)buffer)[i]));
+  // 4 bytes carrier
+  SPI.transfer(0xff);
+  SPI.transfer(0xff);
+  SPI.transfer(0xff);
+  SPI.transfer(0xff);
 
+  // 6 bytes preamble
+  SPI.transfer(0xaa);
+  SPI.transfer(0xaa);
+  SPI.transfer(0xaa);
+  SPI.transfer(0xaa);
+  SPI.transfer(0xaa);
+  SPI.transfer(0xaa);
+
+  // sync word
+  SPI.transfer(0xcb);
+  SPI.transfer(0x89);
+
+  // byte 0: upper nibble from buffer, lower 3 bits = txId
+  uint8_t byte0 = (buffer[0] & 0xF0) | (_txId & 0x07);
+  SPI.transfer(reverseBits(byte0));
+
+  // bytes 1–5
+  for (uint8_t i = 1; i < 6; i++)
+    SPI.transfer(reverseBits(buffer[i]));
+
+  // CRC of first 6 bytes
   SPI.transfer(reverseBits(crc >> 8));
   SPI.transfer(reverseBits(crc & 0xff));
+
+  // dummy repeater info (no repeater)
+  SPI.transfer(0xff);
+  SPI.transfer(0xff);
+
+  // one extra stabilizer byte
+  SPI.transfer(0xff);
+
   unselect();
 
-  // no need to wait for transmit mode to be ready since its handled by the radio
   setMode(RF69_MODE_TX);
-  while (digitalRead(_interruptPin) == 0); //wait for DIO0 to turn HIGH signalling transmission finish
-  //while (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PACKETSENT == 0x00); // Wait for ModeReady
+  t = micros();
+  while (digitalRead(_interruptPin) == 0 && (micros() - t) < SPI_OP_TIMEOUT);
   setMode(RF69_MODE_STANDBY);
+  writeReg(REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_01); // back to PAYLOADREADY for RX
 }
+
 
 void DavisRFM69::setChannel(uint8_t channel)
 {

@@ -90,6 +90,9 @@
 #define VP2P_HUMIDITY       0xA // outside humidity
 #define VP2P_RAIN           0xE // rain bucket tips counter
 
+//SB 1b 3/23/26
+#define SPI_OP_TIMEOUT 15000L  // ~15 ms guard for TX completion
+
 class DavisRFM69 {
   public:
     static volatile uint8_t DATA[DAVIS_PACKET_LEN];  // recv/xmit buf, including header, CRC
@@ -131,8 +134,18 @@ class DavisRFM69 {
     uint8_t readReg(uint8_t addr);
     void writeReg(uint8_t addr, uint8_t val);
     void readAllRegs();
+    // Simple Davis-style TX API (Option B)  SB 3/23/26
+    void send(const uint8_t* buffer, uint8_t channel);  // Davis TX: 6-byte payload → full framed packet
+    void setTxId(uint8_t id) { _txId = id; }            // station ID (0–7, matches Davis low 3 bits)
 
   protected:
+    //Added by SB 3/23/26
+    static bool txMode;  
+    uint8_t _txId = 0;  // default station ID 0 
+
+    void setTxMode(bool mode);
+    void sendFrame(const uint8_t* buffer);  // Davis-framed TX (replaces generic TX for this path)
+
     void virtual interruptHandler();
     void sendFrame(const void* buffer, uint8_t size);
     uint8_t reverseBits(uint8_t b);
