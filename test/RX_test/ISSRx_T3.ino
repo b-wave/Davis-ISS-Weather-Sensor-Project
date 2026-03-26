@@ -1,11 +1,10 @@
 /*
-This is a demo of a Teensy 3.2 using an RFM69 to Recieve (snoop) packets
-using the Davis ISS protocol
+This is a demo of a Teensy 3.2 using an RFM69 to Recieve (snoop) packets using the Davis ISS protocol. Standalone IRQ test for validating DIO0 → Teensy interrupt chain. Note: Includes temporary register defines missing from the Davis fork by DeKay. 
 
 REVISIONS: 
-0.2  Renamed library to avoid miscompiling with the original 
+1.1  Renamed library to avoid miscompiling with the original. Changed IRQ pin ( was: DO/TX1 -> D2) which does not have interrupt capibility) 3/26/26 sb
 
-0.1 Uses Teensy and an RFM69 4/20/2019 sbotts
+1.0 Uses Teensy and an RFM69 4/20/2019 sbotts
  * first Teensey Packet!
  * 4/20/2019 6:00P
  * 
@@ -17,20 +16,11 @@ Waiting for signal. This can take some time...
 
 
 0.0 Original code (C) DeKay 2014 dekaymail@gmail.com
- NOTES: This Sample usage of the DavisRFM69 library to sniff the packets from a Davis Instruments
- wireless Integrated Sensor Suite (ISS), demostrating compatibility between the RFM69
- and the TI CC1020 transmitter used in that hardware.  Packets received from the ISS are
- passes through to the serial port.  This code retains some of the debugging
- functionality of the LowPowerLabs Gateway sketch, on which this code is based.
-
- This is part of the DavisRFM69 library from https://github.com/dekay/DavisRFM69
+ NOTES: This Sample usage of the DavisRFM69 library to sniff the packets from a Davis Integrated Sensor Suite (ISS), demostrating compatibility between the RFM69 This is part of the DavisRFM69 library from https://github.com/dekay/DavisRFM69
  (C) DeKay 2014 dekaymail@gmail.com
+
  Example released under the MIT License (http://opensource.org/licenses/mit-license.php)
  Get the RFM69 and SPIFlash library at: https://github.com/LowPowerLab/
-
- This program has been developed on a Moteino R3 Arduino clone with integrated RFM69W
- transceiver module.  Note that RFM12B-based modules will not work.  See the README
- for more details.
 */
 
 //#include <DavisRFM69.h>
@@ -38,10 +28,10 @@ Waiting for signal. This can take some time...
 #include <SPI.h>
 #include <SPIFlash.h>
 
-// NOTE: *** One of DAVIS_FREQS_US, DAVIS_FREQS_EU, DAVIS_FREQS_AU, or
-// DAVIS_FREQS_NZ MUST be defined at the top of DavisRFM69.h ***
+#define BUILD_VERSION "RX v1.03"
+
 //For Teensy 3.x and T4.x the following format is required to operate correctly
-//This is a limitation of the RadioHead radio drivers
+
 #define RFM69_RST     3
 #define RF69_SPI_CS    SS // 10
 /*
@@ -65,8 +55,9 @@ void setup() {
   
   Serial.begin(SERIAL_BAUD);
   delay(3000);
- Serial.println("Teensy RFM69 RX Test!");
-  
+  Serial.print("Teensy RFM69 RX Test!  vers: ");
+  Serial.println(BUILD_VERSION);
+ 
   //For Teensy 3.x and T4.x the following format is required to operate correctly
 
   Serial.println("Setting up Pins...");  
