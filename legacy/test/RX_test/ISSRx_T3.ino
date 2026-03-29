@@ -1,0 +1,212 @@
+/*
+This is a demo of a Teensy 3.2 using an RFM69 to Recieve (snoop) packets using the Davis ISS protocol. Standalone IRQ test for validating DIO0 → Teensy interrupt chain. Note: Includes temporary register defines missing from the Davis fork by DeKay. 
+
+REVISIONS: 
+1.1  Renamed library to avoid miscompiling with the original. Changed IRQ pin ( was: DO/TX1 -> D2) which does not have interrupt capibility) 3/26/26 sb
+
+1.0 Uses Teensy and an RFM69 4/20/2019 sbotts
+ * first Teensey Packet!
+ * 4/20/2019 6:00P
+ * 
+Teensy RFM69 RX Test!
+
+No SPI Flash Found.
+Waiting for signal. This can take some time...
+0 - Data: 92 01 C3 07 D1 6D D9 40 FF FF   RSSI: -88
+
+
+0.0 Original code (C) DeKay 2014 dekaymail@gmail.com
+ NOTES: This Sample usage of the DavisRFM69 library to sniff the packets from a Davis Integrated Sensor Suite (ISS), demostrating compatibility between the RFM69 This is part of the DavisRFM69 library from https://github.com/dekay/DavisRFM69
+ (C) DeKay 2014 dekaymail@gmail.com
+
+ Example released under the MIT License (http://opensource.org/licenses/mit-license.php)
+ Get the RFM69 and SPIFlash library at: https://github.com/LowPowerLab/
+*/
+
+//#include <DavisRFM69.h>
+#include  <DavisRFM69_Teensy.h>
+#include <SPI.h>
+#include <SPIFlash.h>
+
+#define BUILD_VERSION "RX v1.03"
+
+//For Teensy 3.x and T4.x the following format is required to operate correctly
+
+#define RFM69_RST     3
+#define RF69_SPI_CS    SS // 10
+/*
+ * PINs for interrupt (0, 0 ) works!
+ */
+#define RF69_IRQ_PIN   0 //   digitalPinToInterrupt(2)
+#define RF69_IRQ_NUM  0  // Its in DavidRFM69.h but just to make sure for T3
+//----- END TEENSY CONFIG
+
+//  #define LED           14
+//#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
+#define LED          13  // Moteinos have LEDs on D9
+#define SERIAL_BAUD   9600
+#define PACKET_INTERVAL 2555
+boolean strmon = false;       // Print the packet when received?
+
+DavisRFM69 radio;
+SPIFlash flash(8, 0xEF30); //EF40 for 16mbit windbond chip
+
+void setup() {
+  
+  Serial.begin(SERIAL_BAUD);
+  delay(3000);
+  Serial.print("Teensy RFM69 RX Test!  vers: ");
+  Serial.println(BUILD_VERSION);
+ 
+  //For Teensy 3.x and T4.x the following format is required to operate correctly
+
+  Serial.println("Setting up Pins...");  
+  pinMode(LED, OUTPUT);     
+  pinMode(RFM69_RST, OUTPUT);
+  pinMode(RF69_IRQ_PIN, INPUT); 
+  digitalWrite(RFM69_RST, HIGH);
+      blink(LED,300);
+  Serial.println("Reset RFM69...");
+  Serial.println();
+    // manual reset
+
+
+  digitalWrite(RFM69_RST, HIGH);
+  delay(10);
+  digitalWrite(RFM69_RST, LOW);
+  delay(10);
+  //----- END TEENSY CONFIG
+
+  delay(1000);
+  blink(LED,150);
+  blink(LED,150);
+  
+  radio.initialize();
+  radio.setChannel(0);              // Frequency / Channel is *not* set in the initialization. Do it right after.
+#ifdef IS_RFM69HW
+  radio.setHighPower(); //uncomment only for RFM69HW!
+#endif
+
+  if (flash.initialize())
+    Serial.println(F("SPI Flash Init OK!"));
+  else
+    Serial.println(F("No SPI Flash Found."));
+    
+  Serial.println(F("Waiting for signal. This can take some time..."));
+  
+
+    
+}
+
+unsigned long lastRxTime = 0;
+byte hopCount = 0;
+
+void loop() {
+  //process any serial input
+  if (Serial.available() > 0)
+  {
+    char input = Serial.read();
+    if (input == 'r') //d=dump all register values
+    {
+      radio.readAllRegs();
+      Serial.println();
+    }
+    
+    if (input == 'd') //d=dump flash area
+    {
+      Serial.println("Flash content:");
+      int counter = 0;
+
+      while(counter<=256){
+        Serial.print(flash.readByte(counter++), HEX);
+        Serial.print('.');
+      }
+      while(flash.busy());
+      Serial.println();
+    }
+    if (input == 'e')
+    {
+      Serial.print("Erasing Flash chip ... ");
+      flash.chipErase();
+      while(flash.busy());
+      Serial.println("DONE");
+    }
+    if (input == 'i')
+    {
+      Serial.print("DeviceID: ");
+      word jedecid = flash.readDeviceId();
+      Serial.println(jedecid, HEX);
+    }
+    
+    if (input == 't')
+    {
+      byte temperature =  radio.readTemperature(-1); // -1 = user cal factor, adjust for correct ambient
+      byte fTemp = 1.8 * temperature + 32; // 9/5=1.8
+      Serial.print( "Radio Temp is ");
+      Serial.print(temperature);
+      Serial.print("C, ");
+      Serial.print(fTemp); //converting to F loses some resolution, obvious when C is on edge between 2 values (ie 26C=78F, 27C=80F)
+      Serial.println('F');
+    }
+  }
+
+  // The check for a zero CRC value indicates a bigger problem that will need
+  // fixing, but it needs to stay until the fix is in.
+  // TODO Reset the packet statistics at midnight once I get my clock module.
+  if (radio.receiveDone()) {
+    packetStats.packetsReceived++;
+    unsigned int crc = radio.crc16_ccitt(radio.DATA, 6);
+    if ((crc == (word(radio.DATA[6], radio.DATA[7]))) && (crc != 0)) {
+      packetStats.receivedStreak++;
+      hopCount = 1;
+    } else {
+      packetStats.crcErrors++;
+      packetStats.receivedStreak = 0;
+    }
+
+    if (strmon) printStrm();
+#if 1
+    Serial.print(radio.CHANNEL);
+    Serial.print(F(" - Data: "));
+    for (byte i = 0; i < DAVIS_PACKET_LEN; i++) {
+      if(radio.DATA[i]<0x10)Serial.print(F("0"));
+      Serial.print(radio.DATA[i], HEX);
+      Serial.print(F(" "));
+  }
+  Serial.print(F("  RSSI: "));
+  Serial.println(radio.RSSI);
+#endif
+  // Whether CRC is right or not, we count that as reception and hop.
+  lastRxTime = millis();
+  radio.hop();
+  }
+
+  // If a packet was not received at the expected time, hop the radio anyway
+  // in an attempt to keep up.  Give up after 25 failed attempts.  Keep track
+  // of packet stats as we go.  I consider a consecutive string of missed
+  // packets to be a single resync.  Thx to Kobuki for this algorithm.
+  if ((hopCount > 0) && ((millis() - lastRxTime) > (hopCount * PACKET_INTERVAL + 200))) {
+    packetStats.packetsMissed++;
+    if (hopCount == 1) packetStats.numResyncs++;
+    if (++hopCount > 25) hopCount = 0;
+    radio.hop();
+  }
+}
+
+void printStrm() {
+  for (byte i = 0; i < DAVIS_PACKET_LEN; i++) {
+    Serial.print(i);
+    Serial.print(" = ");
+    Serial.print(radio.DATA[i], HEX);
+    Serial.print(F("\n\r"));
+  }
+  Serial.print(F("\n\r"));
+}
+
+void blink(byte PIN, int DELAY_MS)
+{
+  pinMode(PIN, OUTPUT);
+  digitalWrite(PIN,HIGH);
+  delay(DELAY_MS);
+  digitalWrite(PIN,LOW);
+}
