@@ -40,18 +40,53 @@ void DavisRadio::begin() {
     _radio.initialize(RF69_915MHZ, 1, 1);
     _radio.setMode(RF69_MODE_STANDBY);
 
-    // Apply Davis-specific RF settings
-    _radio.writeReg(REG_BITRATEMSB, DAVIS_BITRATE_MSB);
-    _radio.writeReg(REG_BITRATELSB, DAVIS_BITRATE_LSB);
+    // -------------------------------
+    // Davis ISS modulation parameters
+    // -------------------------------
 
-    _radio.writeReg(REG_FDEVMSB, DAVIS_FDEV_MSB);
-    _radio.writeReg(REG_FDEVLSB, DAVIS_FDEV_LSB);
+    // Bitrate = 19200 bps
+    _radio.writeReg(REG_BITRATEMSB, 0x03);
+    _radio.writeReg(REG_BITRATELSB, 0x41);
 
-    _radio.writeReg(REG_SYNCVALUE1, DAVIS_SYNC1);
-    _radio.writeReg(REG_SYNCVALUE2, DAVIS_SYNC2);
+    // Frequency deviation = 19.2 kHz
+    _radio.writeReg(REG_FDEVMSB, 0x01);
+    _radio.writeReg(REG_FDEVLSB, 0x99);
 
-    // Additional Davis register tweaks can go here
+    // Sync word = 0xAA 0xAA (Davis preamble)
+    _radio.writeReg(REG_SYNCVALUE1, 0xAA);
+    _radio.writeReg(REG_SYNCVALUE2, 0xAA);
+
+    // Sync size = 2 bytes, no tolerance
+    _radio.writeReg(REG_SYNCCONFIG, 0b00010010);
+
+    // Preamble length = 0x0C (96 bits)
+    _radio.writeReg(REG_PREAMBLEMSB, 0x00);
+    _radio.writeReg(REG_PREAMBLELSB, 0x0C);
+
+    // Packet mode: fixed length, no whitening, no CRC, no address filtering
+    _radio.writeReg(REG_PACKETCONFIG1,
+        0b00000000);  // Fixed, no DC-free, no CRC, no addr filter
+
+    // Payload length = 10 bytes
+    _radio.writeReg(REG_PAYLOADLENGTH, 10);
+
+    // Modulation: FSK, no shaping
+    _radio.writeReg(REG_DATAMODUL, 0b00000000);
+
+    // PA level (low power is fine for bench)
+    _radio.writeReg(REG_PALEVEL, 0x70);
+
+    // FIFO threshold
+    _radio.writeReg(REG_FIFOTHRESH, 0x8F);
+
+    // AFC + RX bandwidth (not used for TX but keeps radio sane)
+    _radio.writeReg(REG_RXBW, 0b01001010);   // 125 kHz
+    _radio.writeReg(REG_AFCBW, 0b10001010);  // 125 kHz
+
+    // Ready to go
+    _radio.setMode(RF69_MODE_STANDBY);
 }
+
 
 // -----------------------------------------------------------------------------
 // Build a Davis ISS packet (simple test version) w/crc
@@ -80,11 +115,16 @@ void DavisRadio::sendPacket(const uint8_t* data, uint8_t len, uint8_t hopIndex) 
     // Set hop frequency
     _radio.setFrequency(DAVIS_FREQ_TABLE[hopIndex]);
 
-    // Teensy timing fix (if needed)
     TEENSY_SPI_DELAY();
 
-    // Send packet using upstream RFM69 driver
-    _radio.send(0, data, len, false);
+    // Put radio into TX mode
+    _radio.setMode(RF69_MODE_TX);
 
+    // Send raw payload (no header)
+    _radio.send(data, len, false);
+
+    // Return to standby
+    _radio.setMode(RF69_MODE_STANDBY);
 }
+
 

@@ -6,7 +6,7 @@
 // This file isolates all Davis-specific RF parameters so the protocol layer
 // stays clean and easy to modify or port.
 // -----------------------------------------------------------------------------
-#define DAVIS_TX_ID  2   // choose any 0–7 that your console is not using
+#define DAVIS_TX_ID  5   // choose any 0–7 that your console is not using
 
 // Bitrate: 19200 bps (Davis ISS standard)
 #define DAVIS_BITRATE_MSB   0x1A
