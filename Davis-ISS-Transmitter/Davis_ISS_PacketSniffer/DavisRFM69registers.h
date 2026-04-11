@@ -69,8 +69,8 @@
 
 #define RF_OPMODE_STANDBY             0x04
 #define RF_OPMODE_SYNTHESIZER         0x08
-#define RF_OPMODE_TRANSMITTER         0x0C
-#define RF_OPMODE_RECEIVER            0x10
+#define RF_OPMODE_TRANSMITTER         0x10
+#define RF_OPMODE_RECEIVER            0x0C
 
 // ============================================================================
 // Data modulation (FSK, packet mode, shaping 1.0)
