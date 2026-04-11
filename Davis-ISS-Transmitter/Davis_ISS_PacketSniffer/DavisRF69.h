@@ -1,48 +1,41 @@
-#ifndef DAVISRF69_H
-#define DAVISRF69_H
+#ifndef DAVIS_RF69_H
+#define DAVIS_RF69_H
 
 #include <Arduino.h>
-#include "DavisRFM69registers.h"
+#include <SPI.h>
 
-class DavisRF69 {
+// -----------------------------------------------------------------------------
+// DavisRF69 — Minimal, deterministic RFM69 OOK receiver for Davis ISS packets
+// -----------------------------------------------------------------------------
+class DavisRF69
+{
 public:
     DavisRF69();
 
-    // Initialization
-    void initialize(uint8_t cs, uint8_t irq, uint8_t rst);
-    void initialize();  // legacy no‑arg version if needed
+    // Initialize radio (SPI, CS, IRQ, RESET)
+    bool initialize(uint8_t csPin, uint8_t irqPin, uint8_t rstPin);
 
-    // Radio control
-    void setMode(uint8_t mode);
+    // Check if a packet is available (IRQ or polled)
+    bool packetAvailable();
 
-    // RSSI
-    int16_t readRSSI(bool forceTrigger = false);
+    // Read FIFO into buffer, returns number of bytes read
+    uint8_t readFifo(uint8_t* buf, uint8_t maxLen);
 
-    // Packet RX
-    bool receiveDone();
-    uint8_t DATALEN;
-    uint8_t DATA[66];
-
-    // Debug
-    void dumpRegisters();
-
-    // Register access
+    // Optional: expose register read/write for debugging
     uint8_t readReg(uint8_t addr);
     void writeReg(uint8_t addr, uint8_t value);
 
 private:
-    uint8_t csPin_;
-    uint8_t irqPin_;
-    uint8_t resetPin_;
+    uint8_t _csPin;
+    uint8_t _irqPin;
+    uint8_t _resetPin;
 
-    //volatile bool packetReceived_;
-    static volatile bool packetReceived_;
+    // SPI helpers
+    inline void select();
+    inline void unselect();
 
-    static void onDio0();
-
-    void configureDavisRegisters();
-
-    
+    // Reset pulse
+    void hardwareReset();
 };
 
 #endif

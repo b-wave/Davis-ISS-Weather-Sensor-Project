@@ -1,123 +1,164 @@
+#include <Arduino.h>
+#include <SPI.h>
 #include "DavisRF69.h"
 #include "DavisRFM69registers.h"
-#include <SPI.h>
 
-
-volatile bool DavisRF69::packetReceived_ = false;
-
-DavisRF69::DavisRF69() :
-    csPin_(0),
-    irqPin_(0),
-    resetPin_(0),
-//    packetReceived_(false),
-    DATALEN(0)
+// -----------------------------------------------------------------------------
+// Constructor
+// -----------------------------------------------------------------------------
+DavisRF69::DavisRF69()
 {
+    _csPin = 255;
+    _irqPin = 255;
+    _resetPin = 255;
 }
 
-void DavisRF69::onDio0() {
-    packetReceived_ = true;
+// -----------------------------------------------------------------------------
+// Select / Unselect helpers
+// -----------------------------------------------------------------------------
+inline void DavisRF69::select()
+{
+    digitalWrite(_csPin, LOW);
 }
 
-void DavisRF69::initialize(uint8_t cs, uint8_t irq, uint8_t rst) {
-    csPin_ = cs;
-    irqPin_ = irq;
-    resetPin_ = rst;
+inline void DavisRF69::unselect()
+{
+    digitalWrite(_csPin, HIGH);
+}
 
-    //pinMode(csPin_, OUTPUT);
-    pinMode(irqPin_, INPUT);
-    pinMode(resetPin_, OUTPUT);
-
-    //digitalWrite(csPin_, HIGH);
-
-    // Reset pulse
-    digitalWrite(resetPin_, HIGH);
+// -----------------------------------------------------------------------------
+// Reset pulse
+// -----------------------------------------------------------------------------
+void DavisRF69::hardwareReset()
+{
+    digitalWrite(_resetPin, HIGH);
+    delay(1);
+    digitalWrite(_resetPin, LOW);
     delay(5);
-    digitalWrite(resetPin_, LOW);
-    delay(10);
-  Serial.println(F("reset")); 
-    // Load Davis-specific register table
-    configureDavisRegisters();
-    Serial.println(F("config regs")); 
-    // Attach IRQ
-    attachInterrupt(digitalPinToInterrupt(irqPin_), DavisRF69::onDio0, RISING);
-      Serial.println(F("irq set")); 
-    // Enter RX mode
-    setMode(RF69_MODE_RX);
-      Serial.println(F("rx mode set")); 
 }
 
-void DavisRF69::initialize() {
-    // Legacy no-arg version (optional)
+// -----------------------------------------------------------------------------
+// SPI register helpers
+// -----------------------------------------------------------------------------
+uint8_t DavisRF69::readReg(uint8_t addr)
+{
+    SPI.beginTransaction(SPISettings(8000000, MSBFIRST, SPI_MODE0));
+    select();
+    SPI.transfer(addr & 0x7F);
+    uint8_t val = SPI.transfer(0);
+    unselect();
+    SPI.endTransaction();
+    return val;
 }
 
-void DavisRF69::setMode(uint8_t mode) {
-    writeReg(REG_OPMODE, (readReg(REG_OPMODE) & 0xE3) | mode);
+void DavisRF69::writeReg(uint8_t addr, uint8_t value)
+{
+    SPI.beginTransaction(SPISettings(8000000, MSBFIRST, SPI_MODE0));
+    select();
+    SPI.transfer(addr | 0x80);
+    SPI.transfer(value);
+    unselect();
+    SPI.endTransaction();
 }
 
-int16_t DavisRF69::readRSSI(bool forceTrigger) {
-    if (forceTrigger) {
-        writeReg(REG_RSSICONFIG, RF_RSSI_START);
-        while ((readReg(REG_RSSICONFIG) & RF_RSSI_DONE) == 0);
-    }
-    return -((int16_t)readReg(REG_RSSIVALUE) / 2);
-}
+// -----------------------------------------------------------------------------
+// Initialize radio
+// -----------------------------------------------------------------------------
+bool DavisRF69::initialize(uint8_t cs, uint8_t irq, uint8_t rst)
+{
+    _csPin = cs;
+    _irqPin = irq;
+    _resetPin = rst;
 
-bool DavisRF69::receiveDone() {
-    if (!packetReceived_)
+    // --- SPI bring-up BEFORE touching CS ---
+    SPI.begin();
+    SPI.beginTransaction(SPISettings(8000000, MSBFIRST, SPI_MODE0));
+
+    pinMode(_csPin, OUTPUT);
+    digitalWrite(_csPin, HIGH);
+
+    pinMode(_irqPin, INPUT);
+    pinMode(_resetPin, OUTPUT);
+
+    hardwareReset();
+
+    // --- Receiver safety: disable PA chain ---
+    writeReg(0x11, 0x00);   // REG_PALEVEL = 0x00
+
+    Serial.println("DavisRF69: SPI started, CS high, reset complete");
+
+    // --- Verify chip is responding ---
+    uint8_t version = readReg(REG_VERSION);
+    Serial.print("RFM69 Version: 0x");
+    Serial.println(version, HEX);
+
+    if (version == 0x00 || version == 0xFF)
+    {
+        Serial.println("ERROR: RFM69 not responding");
         return false;
-
-    uint8_t irq2 = readReg(REG_IRQFLAGS2);
-    if (!(irq2 & RF_IRQFLAGS2_PAYLOADREADY))
-        return false;
-
-    // Read FIFO
-    DATALEN = readReg(REG_FIFO);
-    if (DATALEN > 66) DATALEN = 66;
-
-    for (uint8_t i = 0; i < DATALEN; i++) {
-        DATA[i] = readReg(REG_FIFO);
     }
 
-    packetReceived_ = false;
+    // -------------------------------------------------------------------------
+    // Davis OOK RX configuration
+    // -------------------------------------------------------------------------
+    writeReg(REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_LISTEN_OFF | RF_OPMODE_STANDBY);
+    delay(5);
 
-    // Return to RX
-    setMode(RF69_MODE_RX);
+    // OOK mode
+    writeReg(REG_DATAMODUL, RF_DATAMODUL_DATAMODE_CONTINUOUS | RF_DATAMODUL_MODULATIONTYPE_OOK);
+        Serial.println("Frequency 902.3 forced!");
+    // Davis frequency: 915 MHz (center)
+    writeReg(REG_FRFMSB, 0xE1); // for 902.3 MHz
+    writeReg(REG_FRFMID, 0x8C);
+    writeReg(REG_FRFLSB, 0xCC);
+
+
+    // AFC / AGC
+    writeReg(REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_16 | RF_RXBW_EXP_2);
+
+    // OOK threshold
+    writeReg(REG_OOKPEAK, RF_OOKPEAK_THRESHTYPE_PEAK | RF_OOKPEAK_PEAKTHRESHDEC_000);
+    writeReg(REG_OOKAVG, 0x40);
+    writeReg(REG_OOKFIX, 0x06);
+
+    // FIFO
+    writeReg(REG_FIFOTHRESH, RF_FIFOTHRESH_TXSTART_FIFONOTEMPTY | 0x0F);
+
+    // IRQ
+    writeReg(REG_IRQFLAGS2, 0x00);
+
+    // Enter RX
+    writeReg(REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_LISTEN_OFF | RF_OPMODE_RECEIVER);
+
+    Serial.println("DavisRF69: Configured for Davis OOK RX");
 
     return true;
 }
 
-void DavisRF69::dumpRegisters() {
-    for (uint8_t addr = 0; addr <= 0x71; addr++) {
-        uint8_t val = readReg(addr);
-        Serial.print("0x");
-        if (addr < 0x10) Serial.print("0");
-        Serial.print(addr, HEX);
-        Serial.print(": 0x");
-        if (val < 0x10) Serial.print("0");
-        Serial.println(val, HEX);
-    }
+// -----------------------------------------------------------------------------
+// Check for packet (IRQ-driven or polled)
+// -----------------------------------------------------------------------------
+bool DavisRF69::packetAvailable()
+{
+    uint8_t irq = readReg(REG_IRQFLAGS2);
+    return (irq & RF_IRQFLAGS2_PAYLOADREADY);
 }
 
-uint8_t DavisRF69::readReg(uint8_t addr) {
-    digitalWrite(csPin_, LOW);
-    SPI.transfer(addr & 0x7F);
-    uint8_t val = SPI.transfer(0);
-    digitalWrite(csPin_, HIGH);
-    return val;
-}
+// -----------------------------------------------------------------------------
+// Read FIFO into buffer
+// -----------------------------------------------------------------------------
+uint8_t DavisRF69::readFifo(uint8_t* buf, uint8_t maxLen)
+{
+    uint8_t len = 0;
 
-void DavisRF69::writeReg(uint8_t addr, uint8_t value) {
-    digitalWrite(csPin_, LOW);
-    SPI.transfer(addr | 0x80);
-    SPI.transfer(value);
-    digitalWrite(csPin_, HIGH);
-}
+    while (len < maxLen)
+    {
+        uint8_t irq = readReg(REG_IRQFLAGS2);
+        if (!(irq & RF_IRQFLAGS2_FIFONOTEMPTY))
+            break;
 
-void DavisRF69::configureDavisRegisters() {
-    // This uses your existing register table from DavisRFM69registers.h
-    // (tab 2026834355). No changes needed here.
-    for (uint8_t i = 0; DavisRegTable[i][0] != 0xFF; i++) {
-    writeReg(DavisRegTable[i][0], DavisRegTable[i][1]);
+        buf[len++] = readReg(REG_FIFO);
     }
 
+    return len;
 }

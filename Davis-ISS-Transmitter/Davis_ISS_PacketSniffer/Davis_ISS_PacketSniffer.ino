@@ -1,181 +1,154 @@
-// Davis_ISS_PacketSniffer.ino
-// Clean, quiet, manual-channel Davis ISS sniffer
-
+#include <Arduino.h>
 #include <SPI.h>
 #include "DavisRF69.h"
 #include "DavisRFM69registers.h"
-#include "DavisConfig.h"   // for DAVIS_FREQ_TABLE[]
 
-// -----------------------------
-// Pin + radio config
-// -----------------------------
-const uint8_t PIN_CS    = 10;
-const uint8_t PIN_DIO0  = 2;
-const uint8_t PIN_RESET = 3;
-const uint8_t PIN_LED   = 14;
+// -----------------------------------------------------------------------------
+// Pin configuration (adjust CS/IRQ if needed)
+// -----------------------------------------------------------------------------
+#define RF69_CS_PIN     10    // Chip Select (Teensy)
+#define RF69_IRQ_PIN    2     // DIO0 / IRQ (Teensy)
+#define RF69_RESET_PIN  3     // RESET (Teensy, per your wiring)
 
-
+// -----------------------------------------------------------------------------
+// Globals
+// -----------------------------------------------------------------------------
 DavisRF69 radio;
 
-// Davis hop table + channel count should already exist in your project
-extern const uint32_t DAVIS_FREQ_TABLE[];
-const uint8_t CHANNEL_COUNT = 51;
+static uint8_t packetBuf[64];
 
-// -----------------------------
-// Runtime state
-// -----------------------------
-uint8_t currentChannel = 0;
-
-// Debug toggles
-bool DEBUG_SEARCH = false;   // RSSI / OpMode spam
-bool DEBUG_INIT   = true;    // One-time init prints
-
-// -----------------------------
+// -----------------------------------------------------------------------------
 // Helpers
-// -----------------------------
-void setChannelFromTable(uint8_t idx) {
-  if (idx >= CHANNEL_COUNT) idx = 0;
-  currentChannel = idx;
-
-  uint32_t frf = DAVIS_FREQ_TABLE[idx];
-
-  radio.writeReg(REG_FRFMSB, (frf >> 16) & 0xFF);
-  radio.writeReg(REG_FRFMID, (frf >> 8)  & 0xFF);
-  radio.writeReg(REG_FRFLSB,  frf        & 0xFF);
+// -----------------------------------------------------------------------------
+void printHex(const uint8_t* data, uint8_t len)
+{
+    for (uint8_t i = 0; i < len; i++)
+    {
+        if (data[i] < 0x10) Serial.print('0');
+        Serial.print(data[i], HEX);
+        Serial.print(' ');
+    }
 }
 
-void showChannel() {
-  Serial.print(F("Channel: "));
-  Serial.println(currentChannel);
-}
-
-void showRSSI() {
-  int16_t rssi = radio.readRSSI();
-  Serial.print(F("RSSI on CH "));
-  Serial.print(currentChannel);
-  Serial.print(F(" = "));
-  Serial.println(rssi);
-}
-
-// -----------------------------
-// Serial command handler
-// -----------------------------
-void handleSerialCommand() {
-  if (!Serial.available()) return;
-  char c = Serial.read();
-
-  switch (c) {
-    case 'n':   // next channel
-      currentChannel = (currentChannel + 1) % CHANNEL_COUNT;
-      setChannelFromTable(currentChannel);
-      showChannel();
-      break;
-
-    case 'p':   // previous channel
-      currentChannel = (currentChannel == 0) ? (CHANNEL_COUNT - 1) : (currentChannel - 1);
-      setChannelFromTable(currentChannel);
-      showChannel();
-      break;
-
-    case 'r':   // read RSSI
-      showRSSI();
-      break;
-
-    case 's':   // show channel
-      showChannel();
-      break;
-
-    case 'd':   // dump registers (assumes you already have this in DavisRF69.cpp)
-      radio.dumpRegisters();
-      break;
-
-    case 'q':   // toggle search debug
-      DEBUG_SEARCH = !DEBUG_SEARCH;
-      Serial.print(F("DEBUG_SEARCH = "));
-      Serial.println(DEBUG_SEARCH ? F("ON") : F("OFF"));
-      break;
-
-    default:
-      // ignore unknown
-      break;
-  }
-}
-
-// -----------------------------
-// Setup
-// -----------------------------
-void setup() {
-  pinMode(PIN_LED, OUTPUT);
-  digitalWrite(PIN_LED, LOW);
-
-  Serial.begin(115200);
-  while (!Serial) { ; }
-
-  if (DEBUG_INIT) {
+void dumpPacket(const uint8_t* data, uint8_t len)
+{
+    Serial.print("LEN=");
+    Serial.print(len);
+    Serial.print("  DATA: ");
+    printHex(data, len);
     Serial.println();
-    Serial.println(F("Davis Vantage Vue ISS Sniffer - Clean Manual-Channel Mode"));
-    Serial.print(F("CS="));    Serial.print(PIN_CS);
-    Serial.print(F(", DIO0=")); Serial.print(PIN_DIO0);
-    Serial.print(F(", RESET="));Serial.print(PIN_RESET);
-    Serial.print(F(", LED="));  Serial.println(PIN_LED);
-  }
+}
+// -----------------------------------------------------------------------------
+// Force RFM69 frequency to 902.3 MHz using raw SPI writes
+// This bypasses the sniffer driver's incomplete register map.
+// -----------------------------------------------------------------------------
+void forceFRF()
+{
+    SPI.beginTransaction(SPISettings(8000000, MSBFIRST, SPI_MODE0));
 
-  radio.initialize(PIN_CS, PIN_DIO0, PIN_RESET);
-  Serial.println(F("Radio Init...")); 
-  // Start on channel 0 by default
-  setChannelFromTable(0);
-  Serial.println(F("Channel 0 set...")); 
-  // Force RX mode and confirm
-  radio.setMode(RF_OPMODE_RECEIVER);
-  delay(5);
-    Serial.println(F("Receive mode set...")); 
-  uint8_t op = radio.readReg(REG_OPMODE);
+    digitalWrite(RF69_CS_PIN, LOW);
+    SPI.transfer(0x07 | 0x80);
+    SPI.transfer(0x39);
+    digitalWrite(RF69_CS_PIN, HIGH);
 
-  if (DEBUG_INIT) {
-    Serial.print(F("OPMODE after init = 0x"));
-    Serial.println(op, HEX);
-    Serial.println(F("Sniffer ready. Commands: n/p (ch), r (RSSI), s (show ch), d (dump), q (toggle search debug)"));
-  }
+    digitalWrite(RF69_CS_PIN, LOW);
+    SPI.transfer(0x08 | 0x80);
+    SPI.transfer(0xC6);
+
+    pinMode(RF69_RESET_PIN , OUTPUT);
+    digitalWrite(RF69_RESET_PIN , HIGH);
+    delay(100);
+    digitalWrite(RF69_RESET_PIN , LOW);
+    delay(100);
+
+
+    SPI.endTransaction();
+
+    Serial.println("Forced FRF via raw SPI");
 }
 
-// -----------------------------
+
+// -----------------------------------------------------------------------------
+// Setup
+// -----------------------------------------------------------------------------
+void setup()
+{
+    Serial.begin(115200);
+    while (!Serial) { /* wait for USB serial */ }
+
+    Serial.println();
+    Serial.println(F("Davis ISS Packet Sniffer - starting up"));
+
+    if (!radio.initialize(RF69_CS_PIN, RF69_IRQ_PIN, RF69_RESET_PIN))
+    {
+        Serial.println(F("Radio init FAILED - check wiring and power"));
+        while (1) { delay(1000); }
+    }
+  Serial.println(F("Radio init OK - listening for Davis packets..."));
+
+    // >>> CALL RAW SPI OVERRIDE LAST <<<
+    forceFRF();
+    
+    Serial.print("FRFMSB: 0x");
+Serial.println(radio.readReg(REG_FRFMSB), HEX);
+
+Serial.print("FRFMID: 0x");
+Serial.println(radio.readReg(REG_FRFMID), HEX);
+
+Serial.print("FRFLSB: 0x");
+Serial.println(radio.readReg(REG_FRFLSB), HEX);
+
+Serial.print("OPMODE: 0x");
+Serial.println(radio.readReg(REG_OPMODE), HEX);
+
+Serial.print("DATAMODUL: 0x");
+Serial.println(radio.readReg(REG_DATAMODUL), HEX);
+
+Serial.print("IRQFLAGS1: 0x");
+Serial.println(radio.readReg(REG_IRQFLAGS1), HEX);
+
+Serial.print("IRQFLAGS2: 0x");
+Serial.println(radio.readReg(REG_IRQFLAGS2), HEX);
+
+Serial.print("RSSIVALUE: 0x");
+Serial.println(radio.readReg(REG_RSSIVALUE), HEX);
+
+}
+
+// -----------------------------------------------------------------------------
 // Main loop
-// -----------------------------
-void loop() {
-  handleSerialCommand();
+// -----------------------------------------------------------------------------
+void loop()
+{
+uint8_t flags2 = radio.readReg(REG_IRQFLAGS2);  // 0x28
+if (flags2 & 0x40) { // FIFO not empty
+    uint8_t buf[64];
+    uint8_t len = radio.readFifo(buf, sizeof(buf));
 
-  // Optional: light search debug (RSSI + OpMode)
-  if (DEBUG_SEARCH) {
-    uint8_t op = radio.readReg(REG_OPMODE);
-    int16_t rssi = radio.readRSSI();
-    Serial.print(F("OpMode=0x"));
-    Serial.print(op, HEX);
-    Serial.print(F("  RSSI="));
-    Serial.println(rssi);
-    delay(200);
-  }
-
-  // Check for packet
-  if (radio.receiveDone()) {
-    digitalWrite(PIN_LED, HIGH);
-
-    int16_t rssi = radio.readRSSI();
-
-    Serial.print(F("PKT CH="));
-    Serial.print(currentChannel);
-    Serial.print(F(" RSSI="));
-    Serial.print(rssi);
-    Serial.print(F(" LEN="));
-    Serial.print(radio.DATALEN);
-    Serial.print(F("  "));
-
-    for (uint8_t i = 0; i < radio.DATALEN; i++) {
-      if (radio.DATA[i] < 0x10) Serial.print('0');
-      Serial.print(radio.DATA[i], HEX);
-      Serial.print(' ');
+    Serial.print("POLLED Packet: LEN=");
+    Serial.print(len);
+    Serial.print("  DATA: ");
+    for (uint8_t i = 0; i < len; i++) {
+        if (buf[i] < 0x10) Serial.print('0');
+        Serial.print(buf[i], HEX);
+        Serial.print(' ');
     }
     Serial.println();
+}
 
-    digitalWrite(PIN_LED, LOW);
-  }
+
+    // Simple polled loop: check if a packet is available
+    if (radio.packetAvailable())
+    {
+        uint8_t len = radio.readFifo(packetBuf, sizeof(packetBuf));
+
+        if (len > 0)
+        {
+            Serial.print(F("Packet: "));
+            dumpPacket(packetBuf, len);
+        }
+    }
+
+    // Small delay to avoid hammering SPI/Serial
+    delay(5);
 }
