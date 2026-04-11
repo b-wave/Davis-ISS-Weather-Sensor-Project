@@ -14,8 +14,8 @@ const uint8_t PIN_DIO0  = 2;
 const uint8_t PIN_RESET = 3;
 const uint8_t PIN_LED   = 14;
 
-DavisRF69 radio(PIN_CS, PIN_DIO0);  //was 
-//DavisRF69 radio();
+
+DavisRF69 radio;
 
 // Davis hop table + channel count should already exist in your project
 extern const uint32_t DAVIS_FREQ_TABLE[];
@@ -121,13 +121,14 @@ void setup() {
   }
 
   radio.initialize(PIN_CS, PIN_DIO0, PIN_RESET);
-
+  Serial.println(F("Radio Init...")); 
   // Start on channel 0 by default
   setChannelFromTable(0);
-
+  Serial.println(F("Channel 0 set...")); 
   // Force RX mode and confirm
   radio.setMode(RF_OPMODE_RECEIVER);
   delay(5);
+    Serial.println(F("Receive mode set...")); 
   uint8_t op = radio.readReg(REG_OPMODE);
 
   if (DEBUG_INIT) {

@@ -1,6 +1,17 @@
 #ifndef DAVIS_RFM69_REGISTERS_H
 #define DAVIS_RFM69_REGISTERS_H
 
+#define RF69_MODE_SLEEP        0x00
+#define RF69_MODE_STANDBY      0x04
+#define RF69_MODE_FS           0x08
+#define RF69_MODE_TX           0x0C
+#define RF69_MODE_RX           0x10
+
+#define RF_RSSI_START          0x01
+#define RF_RSSI_DONE           0x02
+
+#define RF_IRQFLAGS2_PAYLOADREADY 0x04
+
 // ============================================================================
 // Core RFM69 register addresses (from Semtech SX1231 datasheet)
 // ============================================================================
@@ -202,4 +213,72 @@
 #define RF_PACKET1_ADRSFILTERING_NODE        0x02
 #define RF_PACKET1_ADRSFILTERING_NODEBROADCAST 0x04
 
-#endif
+// ============================================================================
+// DavisRegTable — Davis ISS–specific RFM69 register configuration
+// ============================================================================
+// This table configures the RFM69 to behave like a Davis ISS receiver.
+// It is used by DavisRF69::configureDavisRegisters().
+// Terminator: {0xFF, 0x00}
+// ============================================================================
+
+// ============================================================================
+// DavisRegTable — Davis ISS–specific RFM69 register configuration
+// ============================================================================
+
+static const uint8_t DavisRegTable[][2] = {
+
+    // --- Basic mode control ---
+    { REG_OPMODE,            0x04 },   // Standby
+
+    // --- Data modulation ---
+    { REG_DATAMODUL,         0x00 },   // Packet mode, FSK, no shaping
+
+    // --- Bitrate: 19200 bps ---
+    { REG_BITRATEMSB,        0x0D },
+    { REG_BITRATELSB,        0x05 },
+
+    // --- Frequency deviation: ~38.4 kHz ---
+    { REG_FDEVMSB,           0x01 },
+    { REG_FDEVLSB,           0x48 },
+
+    // --- RF frequency (placeholder; hop table sets actual freq) ---
+    { REG_FRFMSB,            0xE4 },   // 902.3 MHz base
+    { REG_FRFMID,            0xC0 },
+    { REG_FRFLSB,            0x00 },
+
+    // --- Receiver configuration ---
+    { REG_RXBW,              0x55 },   // ~100 kHz BW
+    { REG_AFCBW,             0x8B },   // AFC BW ~125 kHz
+
+    // --- AFC ---
+    { REG_AFCCTRL,           0x00 },   // Standard AFC
+
+    // --- LNA ---
+    { REG_LNA,               0x88 },   // 200 ohm, gain auto
+
+    // --- RSSI ---
+    { REG_RSSITHRESH,        0xE4 },   // RSSI threshold ~ -114 dBm
+
+    // --- Sync word ---
+    { REG_SYNCCONFIG,        0x88 },   // Sync on, 2 bytes
+    { REG_SYNCVALUE1,        0x2D },
+    { REG_SYNCVALUE2,        0xD4 },
+
+    // --- Packet config ---
+    { REG_PACKETCONFIG1,     0x90 },   // Variable length, no CRC, no whitening
+    { REG_PAYLOADLENGTH,     0x40 },   // Max 64 bytes
+    { REG_FIFOTHRESH,        0x8F },   // TxStart=0, FIFO threshold=15
+
+    // --- Auto modes (unused but safe) ---
+    //{ REG_AUTOMODES,         0x00 },
+    { REG_PACKETCONFIG2,     0x00 },
+
+    // --- FIFO ---
+    { REG_TESTDAGC,          0x30 },   // Improved DAGC
+
+    // --- End of table ---
+    { 0xFF,                  0x00 }
+};
+
+#endif  // DAVIS_RFM69_REGISTERS_H
+

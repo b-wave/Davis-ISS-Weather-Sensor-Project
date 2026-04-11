@@ -2,25 +2,47 @@
 #define DAVISRF69_H
 
 #include <Arduino.h>
-#include <SPI.h>
 #include "DavisRFM69registers.h"
 
 class DavisRF69 {
 public:
-    DavisRF69(uint8_t csPin, uint8_t irqPin);
+    DavisRF69();
 
-    void initialize();
+    // Initialization
+    void initialize(uint8_t cs, uint8_t irq, uint8_t rst);
+    void initialize();  // legacy no‑arg version if needed
+
+    // Radio control
     void setMode(uint8_t mode);
-    void setFrequency(uint32_t frf);
+
+    // RSSI
+    int16_t readRSSI(bool forceTrigger = false);
+
+    // Packet RX
+    bool receiveDone();
+    uint8_t DATALEN;
+    uint8_t DATA[66];
+
+    // Debug
+    void dumpRegisters();
+
+    // Register access
     uint8_t readReg(uint8_t addr);
     void writeReg(uint8_t addr, uint8_t value);
 
 private:
-    uint8_t _csPin;
-    uint8_t _irqPin;
+    uint8_t csPin_;
+    uint8_t irqPin_;
+    uint8_t resetPin_;
 
-    void select();
-    void unselect();
+    //volatile bool packetReceived_;
+    static volatile bool packetReceived_;
+
+    static void onDio0();
+
+    void configureDavisRegisters();
+
+    
 };
 
 #endif
