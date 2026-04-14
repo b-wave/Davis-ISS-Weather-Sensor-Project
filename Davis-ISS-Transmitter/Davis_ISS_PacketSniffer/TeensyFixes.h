@@ -1,6 +1,6 @@
 //TeensyFixes.h
 #pragma once
-
+//Version 4/13/2026
 // -----------------------------------------------------------------------------
 // Teensy-specific timing and SPI adjustments
 // This file isolates all architecture quirks so the Davis logic stays clean.

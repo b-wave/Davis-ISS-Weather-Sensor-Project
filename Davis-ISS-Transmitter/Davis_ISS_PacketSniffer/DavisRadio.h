@@ -1,23 +1,30 @@
-#pragma once
-
+#ifndef DAVIS_RADIO_H
+#define DAVIS_RADIO_H
+//Version 4/13/2026
 #include <Arduino.h>
-#include "RFM69.h"
+#include "DavisConfig.h"
+#include "DavisRF69_RX.h"  //only RX build
 
-// Forward declarations
+
 class DavisRadio {
 public:
-    void buildTestPacket(uint8_t* buf, uint8_t windSpeed, uint16_t windDir);
+    DavisRadio(DavisConfig& config,
+               uint8_t csPin,
+               uint8_t irqPin,
+               uint8_t resetPin);
 
-    DavisRadio(RFM69& radio);
-
-    void begin();                                 // Configure radio for Davis ISS
-    void sendPacket(const uint8_t* data,
-                    uint8_t len,
-                    uint8_t hopIndex);            // Send one Davis packet on hopIndex
+    bool begin();
+    void setHop(uint8_t hopIndex);
+    uint8_t currentHop() const { return _hopIndex; }
+    void nextHop();
+    bool receiveFrame(uint8_t* buf, uint8_t& len, int16_t& rssi);
 
 private:
-    RFM69& _radio;
+    DavisConfig& _config;
+    DavisRF69_RX _rx;     // RX only — no TX
+    uint8_t _hopIndex;
+
+    bool parseFrame(uint8_t* buf, uint8_t& len);
 };
-extern RFM69 radio;
-extern DavisRadio davis;
-void resetRadio();
+
+#endif
