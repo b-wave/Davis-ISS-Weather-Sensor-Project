@@ -32,6 +32,9 @@ bool DavisRF69_RX::begin() {
     setMode(RF69_MODE_STANDBY);
     delay(10);
 
+    setMode(RF_OPMODE_RECEIVER);
+    delay(10);
+
     return true;
 }
 
@@ -151,4 +154,11 @@ bool DavisRF69_RX::waitForPayload(uint16_t timeoutMs) {
             return true;
     }
     return false;
+}
+
+int16_t DavisRF69_RX::getRSSI() {
+    return readRSSI();
+}
+uint8_t DavisRF69_RX::getReg(uint8_t addr) {
+    return readReg(addr);
 }

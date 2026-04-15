@@ -14,6 +14,8 @@ public:
     bool begin();
     void sleep();
     void standby();
+    int16_t getRSSI();
+    uint8_t getReg(uint8_t addr);
 
     // Set RF channel by hop index (0..hopCount-1)
     bool setChannel(uint8_t channelIndex);
@@ -37,6 +39,7 @@ private:
     bool writeReg(uint8_t addr, uint8_t value);
     uint8_t readReg(uint8_t addr);
     int16_t readRSSI();
+    
 
     void configureCommon();
     void configureRX();

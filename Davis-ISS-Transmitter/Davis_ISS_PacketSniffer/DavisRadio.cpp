@@ -79,3 +79,13 @@ bool DavisRadio::parseFrame(uint8_t* buf, uint8_t& len) {
     (void)len;
     return true;
 }
+
+int16_t DavisRadio::rawRSSI() {
+    return _rx.getRSSI();
+}
+
+uint8_t DavisRadio::readReg(uint8_t addr) {
+    return _rx.getReg(addr);
+
+}
+

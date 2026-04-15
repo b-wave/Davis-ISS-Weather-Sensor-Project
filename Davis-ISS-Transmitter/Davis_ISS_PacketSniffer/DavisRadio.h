@@ -18,6 +18,9 @@ public:
     uint8_t currentHop() const { return _hopIndex; }
     void nextHop();
     bool receiveFrame(uint8_t* buf, uint8_t& len, int16_t& rssi);
+    int16_t rawRSSI();
+    uint8_t readReg(uint8_t addr);
+
 
 private:
     DavisConfig& _config;

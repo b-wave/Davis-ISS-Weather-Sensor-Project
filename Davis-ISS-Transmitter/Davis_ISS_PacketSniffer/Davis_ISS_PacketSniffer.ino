@@ -27,6 +27,9 @@ void setup() {
     Serial.println("Radio init OK");
     radio.setHop(30);   // park on channel 30
 
+    Serial.println(radio.readReg(0x10), HEX); // VERSION
+    Serial.println(radio.readReg(0x01), HEX); // OPMODE
+
 }
 
 void loop() {
