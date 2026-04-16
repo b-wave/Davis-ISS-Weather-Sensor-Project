@@ -27,6 +27,7 @@ public:
     bool receive(uint8_t* buffer, uint8_t& len, int16_t& rssi);
 
 private:
+    friend class DavisConfig; 
     uint8_t _csPin;
     uint8_t _irqPin;
     uint8_t _resetPin;

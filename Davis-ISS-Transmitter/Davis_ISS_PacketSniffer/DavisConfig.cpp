@@ -1,5 +1,39 @@
 #include "DavisConfig.h"
-//Version 4/15/2026
+#include "DavisRF69_RX.h"  
+
+void DavisConfig::applyRX(DavisRF69_RX& radio) {
+    // OOK, continuous mode
+    radio.writeReg(0x02, 0x08);  // REG_DATAMODUL
+
+    // Bitrate
+    radio.writeReg(0x03, bitrateMsb);
+    radio.writeReg(0x04, bitrateLsb);
+
+    // Deviation
+    radio.writeReg(0x05, fdevMsb);
+    radio.writeReg(0x06, fdevLsb);
+
+    // RX and AFC bandwidth
+    radio.writeReg(0x19, rxBw);
+    radio.writeReg(0x1A, afcBw);
+
+    // Sync
+    radio.writeReg(0x2E, syncConfig);
+    radio.writeReg(0x2F, syncValue1);
+    radio.writeReg(0x30, syncValue2);
+
+    // Packet config
+    radio.writeReg(0x37, packetConfig1);
+    radio.writeReg(0x38, packetConfig2);
+
+    // Payload length
+    radio.writeReg(0x38, packetConfig2);  // if length lives here in your shim
+    radio.writeReg(0x38 + 1, payloadLength); // or REG_PAYLOADLENGTH if defined
+
+    // RSSI threshold: Davis-friendly
+    radio.writeReg(0x58, 0xE4);
+}
+
 // -----------------------------------------------------------------------------
 // Base Davis US 915 MHz hop table as FRF words (same as original, compact form)
 // -----------------------------------------------------------------------------
@@ -135,47 +169,42 @@ DavisConfig::DavisConfig(DavisRegion region) {
 }
 
 void DavisConfig::loadRegion(DavisRegion region) {
+
     if (region == DAVIS_REGION_US_915) {
         hopTable = hopTable_US_915;
         hopCount = sizeof(hopTable_US_915) / sizeof(FRF);
-        // bitrate / fdev / sync / txId same as original DavisConfig.cpp
-// COPY THESE FROM THE ORIGINAL TRANSMITTER DavisConfig.cpp
-        bitrateMsb = 0x03;
-        bitrateLsb = 0x41;
 
-        fdevMsb = 0x01;
-        fdevLsb = 0x99;
+        bitrateMsb = 0x1A;
+        bitrateLsb = 0x0B;
 
-        rxBw  = 0x55;   // placeholder – use real value
-        afcBw = 0x8B;   // placeholder – use real value
+        fdevMsb = 0x00;
+        fdevLsb = 0x52;
 
-        syncConfig = 0x88;  // sync on, 2 bytes
-        syncValue1 = 0xAA;
-        syncValue2 = 0xAA;
+        rxBw  = 0x55;
+        afcBw = 0x8B;
 
-        packetConfig1 = 0x00;  // fixed length, no whitening (adjust to match TX)
+        syncConfig = 0x88;
+        syncValue1 = 0x2D;
+        syncValue2 = 0xD4;
+
+        packetConfig1 = 0x00;
         packetConfig2 = 0x00;
 
-        payloadLength = 10;    // Davis ISS payload length
-
-        txId = 0x1234;         // not needed for RX, keep for completeness
-
-    } 
-    
+        payloadLength = 10;
+        txId = 0x1234;
+    }
     else {
-        // ---------------- EU 868 MHz ----------------
         hopTable = hopTable_EU_868;
         hopCount = sizeof(hopTable_EU_868) / sizeof(FRF);
 
-        // COPY EU VALUES FROM ORIGINAL DavisConfig.cpp
         bitrateMsb = 0x03;
         bitrateLsb = 0x41;
 
         fdevMsb = 0x01;
         fdevLsb = 0x99;
 
-        rxBw  = 0x55;   // placeholder – use real value
-        afcBw = 0x8B;   // placeholder – use real value
+        rxBw  = 0x55;
+        afcBw = 0x8B;
 
         syncConfig = 0x88;
         syncValue1 = 0xAA;
@@ -185,7 +214,7 @@ void DavisConfig::loadRegion(DavisRegion region) {
         packetConfig2 = 0x00;
 
         payloadLength = 10;
-
         txId = 0x1234;
     }
 }
+

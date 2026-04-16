@@ -19,7 +19,16 @@ public:
     bool waitForPacketSent(uint16_t timeoutMs);
     bool sendISSFrame(const uint8_t* payload, uint8_t len, uint8_t channel);
     bool writeReg(uint8_t addr, uint8_t value);
+/*//Version 4/15/2026
 
+private:
+    uint8_t _csPin;
+    uint8_t _irqPin;
+    uint8_t _resetPin;
+    DavisConfig& _config;
+
+    uint8_t _currentChannel;
+*/
 private:
     void setMode(uint8_t mode);
     uint8_t readReg(uint8_t addr);
@@ -32,7 +41,7 @@ private:
     uint8_t _irqPin;
     uint8_t _resetPin;
     DavisConfig& _config; 
-
+       
     uint8_t _currentChannel;
 
 

@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+class DavisRF69_RX;
 
 enum DavisRegion {
     DAVIS_REGION_US_915,
@@ -14,7 +15,8 @@ struct FRF {
 
 struct DavisConfig {
     // Region + hopping
-    DavisRegion region;
+    void loadRegion(DavisRegion region);
+    void applyRX(DavisRF69_RX& radio);
     const FRF*  hopTable;
     uint8_t     hopCount;
 
@@ -44,5 +46,4 @@ struct DavisConfig {
     DavisConfig() = default;
     DavisConfig(DavisRegion region);
 
-    void loadRegion(DavisRegion region);
 };
