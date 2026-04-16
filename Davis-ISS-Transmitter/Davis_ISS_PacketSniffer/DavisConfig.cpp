@@ -1,5 +1,5 @@
 #include "DavisConfig.h"
-//Version 4/13/2026
+//Version 4/15/2026
 // -----------------------------------------------------------------------------
 // Base Davis US 915 MHz hop table as FRF words (same as original, compact form)
 // -----------------------------------------------------------------------------
@@ -139,9 +139,53 @@ void DavisConfig::loadRegion(DavisRegion region) {
         hopTable = hopTable_US_915;
         hopCount = sizeof(hopTable_US_915) / sizeof(FRF);
         // bitrate / fdev / sync / txId same as original DavisConfig.cpp
-    } else {
+// COPY THESE FROM THE ORIGINAL TRANSMITTER DavisConfig.cpp
+        bitrateMsb = 0x03;
+        bitrateLsb = 0x41;
+
+        fdevMsb = 0x01;
+        fdevLsb = 0x99;
+
+        rxBw  = 0x55;   // placeholder – use real value
+        afcBw = 0x8B;   // placeholder – use real value
+
+        syncConfig = 0x88;  // sync on, 2 bytes
+        syncValue1 = 0xAA;
+        syncValue2 = 0xAA;
+
+        packetConfig1 = 0x00;  // fixed length, no whitening (adjust to match TX)
+        packetConfig2 = 0x00;
+
+        payloadLength = 10;    // Davis ISS payload length
+
+        txId = 0x1234;         // not needed for RX, keep for completeness
+
+    } 
+    
+    else {
+        // ---------------- EU 868 MHz ----------------
         hopTable = hopTable_EU_868;
         hopCount = sizeof(hopTable_EU_868) / sizeof(FRF);
-        // EU params from original
+
+        // COPY EU VALUES FROM ORIGINAL DavisConfig.cpp
+        bitrateMsb = 0x03;
+        bitrateLsb = 0x41;
+
+        fdevMsb = 0x01;
+        fdevLsb = 0x99;
+
+        rxBw  = 0x55;   // placeholder – use real value
+        afcBw = 0x8B;   // placeholder – use real value
+
+        syncConfig = 0x88;
+        syncValue1 = 0xAA;
+        syncValue2 = 0xAA;
+
+        packetConfig1 = 0x00;
+        packetConfig2 = 0x00;
+
+        payloadLength = 10;
+
+        txId = 0x1234;
     }
 }

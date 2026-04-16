@@ -1,6 +1,6 @@
 #ifndef DAVIS_RADIO_H
 #define DAVIS_RADIO_H
-//Version 4/13/2026
+//Version 4/15/2026
 #include <Arduino.h>
 #include "DavisConfig.h"
 #include "DavisRF69_RX.h"  //only RX build

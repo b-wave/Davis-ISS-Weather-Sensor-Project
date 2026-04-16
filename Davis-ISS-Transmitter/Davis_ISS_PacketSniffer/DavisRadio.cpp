@@ -1,5 +1,5 @@
 #include "DavisRadio.h"
-//Version 4/13/2026
+//Version 4/15/2026
 DavisRadio::DavisRadio(DavisConfig& config,
                        uint8_t csPin,
                        uint8_t irqPin,
@@ -8,6 +8,14 @@ DavisRadio::DavisRadio(DavisConfig& config,
       _rx(csPin, irqPin, resetPin, config),
       _hopIndex(0)
 {
+
+    //Setup pins 
+    pinMode(irqPin, INPUT);
+    pinMode(csPin, OUTPUT);
+    SPI.begin();
+    SPI.beginTransaction(SPISettings(8000000, MSBFIRST, SPI_MODE0));
+    SPI.endTransaction();
+
 }
 
 bool DavisRadio::begin() {

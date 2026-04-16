@@ -3,7 +3,7 @@
 #include <SPI.h>
 #include "DavisConfig.h"
 #include "DavisRFM69registers.h"
-//Version 4/13/2026
+//Version 4/15/2026
 class DavisRF69_RX {
 public:
     DavisRF69_RX(uint8_t csPin,

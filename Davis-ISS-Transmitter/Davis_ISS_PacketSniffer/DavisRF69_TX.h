@@ -3,7 +3,7 @@
 #include <SPI.h>
 #include "DavisConfig.h"
 #include "DavisRFM69registers.h"
-//Version 4/13/2026
+//Version 4/15/2026
 class DavisRF69_TX {
 public:
     DavisRF69_TX(uint8_t csPin,
@@ -31,7 +31,9 @@ private:
     uint8_t _csPin;
     uint8_t _irqPin;
     uint8_t _resetPin;
+    DavisConfig& _config; 
+
     uint8_t _currentChannel;
 
-    DavisConfig& _config;
+
 };

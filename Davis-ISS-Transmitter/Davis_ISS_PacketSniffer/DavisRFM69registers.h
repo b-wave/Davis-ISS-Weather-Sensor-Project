@@ -1,6 +1,6 @@
 #ifndef DAVIS_RFM69_REGISTERS_H
 #define DAVIS_RFM69_REGISTERS_H
-//Version 4/13/2026
+//Version 4/15/2026
 // -----------------------------------------------------------------------------
 // Core RFM69 register addresses
 // -----------------------------------------------------------------------------
@@ -45,6 +45,7 @@
 
 #define REG_SYNCCONFIG      0x2E
 #define REG_SYNCVALUE1      0x2F
+#define REG_SYNCVALUE2      0x30
 
 // -----------------------------------------------------------------------------
 // REG_SYNCCONFIG bits

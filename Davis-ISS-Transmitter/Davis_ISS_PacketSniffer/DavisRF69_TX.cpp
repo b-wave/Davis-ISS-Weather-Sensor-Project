@@ -2,7 +2,7 @@
 #include "DavisRFM69registers.h"
 #include <Arduino.h>
 #include <SPI.h>
-//Version 4/13/2026
+//Version 4/15/2026
 
 
 DavisRF69_TX::DavisRF69_TX(uint8_t csPin,
@@ -107,7 +107,9 @@ void DavisRF69_TX::configureCommon() {
              RF_SYNCCONFIG_SYNCON |
              RF_SYNCCONFIG_SYNCSIZE_1);
 
-    writeReg(REG_SYNCVALUE1, _config.syncValue);
+    //writeReg(REG_SYNCVALUE1, _config.syncValue);
+writeReg(REG_SYNCVALUE1, _config.syncValue1);
+writeReg(REG_SYNCVALUE2, _config.syncValue2);
 
     writeReg(REG_PACKETCONFIG1,
              RF_PACKET1_FORMAT_VARIABLE |

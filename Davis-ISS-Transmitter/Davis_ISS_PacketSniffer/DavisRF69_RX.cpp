@@ -1,7 +1,7 @@
 #include "DavisRF69_RX.h"
 #include <Arduino.h>
 #include <SPI.h>
-//Version 4/13/2026
+//Version 4/15/2026
 DavisRF69_RX::DavisRF69_RX(uint8_t csPin,
                            uint8_t irqPin,
                            uint8_t resetPin,
@@ -15,25 +15,34 @@ DavisRF69_RX::DavisRF69_RX(uint8_t csPin,
 }
 
 bool DavisRF69_RX::begin() {
-    pinMode(_csPin, OUTPUT);
-    digitalWrite(_csPin, HIGH);
 
     pinMode(_resetPin, OUTPUT);
-    digitalWrite(_resetPin, LOW);
-    delay(1);
-    digitalWrite(_resetPin, HIGH);
-    delay(5);
+Serial.println("RX begin() running");
+Serial.print("Using CS pin: ");
+Serial.println(_csPin);
 
-    SPI.begin();
+pinMode(_csPin, OUTPUT);
+digitalWrite(_csPin, HIGH);
 
+Serial.print("CS after init: ");
+Serial.println(digitalRead(_csPin));
+// Assert reset (active HIGH)
+//digitalWrite(_resetPin, HIGH);
+delay(10);   // VPTools uses 10 ms
+
+// Release reset
+//digitalWrite(_resetPin, LOW);
+delay(10);   // allow oscillator + registers to settle
+
+    
     configureCommon();
     configureRX();
 
     setMode(RF69_MODE_STANDBY);
-    delay(10);
+    delay(100);
 
     setMode(RF_OPMODE_RECEIVER);
-    delay(10);
+    delay(100);
 
     return true;
 }
@@ -79,24 +88,31 @@ bool DavisRF69_RX::receive(uint8_t* buffer, uint8_t& len, int16_t& rssi) {
 }
 
 void DavisRF69_RX::setMode(uint8_t mode) {
+    
     writeReg(REG_OPMODE, (readReg(REG_OPMODE) & 0xE3) | mode);
 }
 
+ 
 bool DavisRF69_RX::writeReg(uint8_t addr, uint8_t value) {
+    SPI.beginTransaction(SPISettings(8000000, MSBFIRST, SPI_MODE0));
     digitalWrite(_csPin, LOW);
     SPI.transfer(addr | 0x80);
     SPI.transfer(value);
     digitalWrite(_csPin, HIGH);
+    SPI.endTransaction();
     return true;
 }
 
 uint8_t DavisRF69_RX::readReg(uint8_t addr) {
+    SPI.beginTransaction(SPISettings(8000000, MSBFIRST, SPI_MODE0));
     digitalWrite(_csPin, LOW);
     SPI.transfer(addr & 0x7F);
     uint8_t val = SPI.transfer(0);
     digitalWrite(_csPin, HIGH);
+    SPI.endTransaction();
     return val;
 }
+
 
 int16_t DavisRF69_RX::readRSSI() {
     writeReg(REG_RSSICONFIG, 0x01);
@@ -105,6 +121,27 @@ int16_t DavisRF69_RX::readRSSI() {
 }
 
 void DavisRF69_RX::configureCommon() {
+    Serial.println("configureCommon() running");
+    Serial.print("CS pin state before write: ");
+Serial.println(digitalRead(_csPin));
+
+Serial.println("Writing test value to 0x03...");
+writeReg(0x03, 0x12);
+uint8_t v = readReg(0x03);
+Serial.print("Readback 0x03 = ");
+Serial.println(v, HEX);
+Serial.print("bitrateMsb = ");
+Serial.println(_config.bitrateMsb, HEX);
+
+Serial.print("bitrateLsb = ");
+Serial.println(_config.bitrateLsb, HEX);
+
+Serial.print("fdevMsb = ");
+Serial.println(_config.fdevMsb, HEX);
+
+Serial.print("fdevLsb = ");
+Serial.println(_config.fdevLsb, HEX);
+
     writeReg(REG_DATAMODUL,
              RF_DATAMODUL_DATAMODE_PACKET |
              RF_DATAMODUL_MODULATIONTYPE_FSK |
@@ -120,7 +157,9 @@ void DavisRF69_RX::configureCommon() {
              RF_SYNCCONFIG_SYNCON |
              RF_SYNCCONFIG_SYNCSIZE_1);
 
-    writeReg(REG_SYNCVALUE1, _config.syncValue);
+    //writeReg(REG_SYNCVALUE1, _config.syncValue);
+writeReg(REG_SYNCVALUE1, _config.syncValue1);
+writeReg(REG_SYNCVALUE2, _config.syncValue2);
 
     writeReg(REG_PACKETCONFIG1,
              RF_PACKET1_FORMAT_VARIABLE |
