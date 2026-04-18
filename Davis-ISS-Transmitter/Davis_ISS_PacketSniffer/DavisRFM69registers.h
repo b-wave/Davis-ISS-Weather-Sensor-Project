@@ -138,5 +138,6 @@
 #define RF_IRQFLAGS2_FIFOOVERRUN            0x10
 #define RF_IRQFLAGS2_PACKETSENT             0x08
 #define RF_IRQFLAGS2_PAYLOADREADY           0x04
+#define RF_IRQFLAGS1_MODEREADY              0x80
 
 #endif

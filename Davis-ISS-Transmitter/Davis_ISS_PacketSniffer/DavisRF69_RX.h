@@ -26,6 +26,10 @@ public:
     // B: receive with RSSI
     bool receive(uint8_t* buffer, uint8_t& len, int16_t& rssi);
 
+    // C: Set radio to recieve mode
+    void enterRX();
+
+
 private:
     friend class DavisConfig; 
     uint8_t _csPin;

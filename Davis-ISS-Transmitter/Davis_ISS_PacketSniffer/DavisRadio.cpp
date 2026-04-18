@@ -98,3 +98,15 @@ uint8_t DavisRadio::readReg(uint8_t addr) {
 
 }
 
+void DavisRadio::applyConfig() {
+    _config.applyRX(_rx);
+    _rx.enterRX();
+}
+
+void DavisRadio::enterRX() {
+    _rx.enterRX();
+}
+
+void DavisRadio::beginRXOnly() {
+    _rx.begin();
+}

@@ -20,6 +20,9 @@ public:
     bool receiveFrame(uint8_t* buf, uint8_t& len, int16_t& rssi);
     int16_t rawRSSI();
     uint8_t readReg(uint8_t addr);
+    void applyConfig();
+    void enterRX();
+    void beginRXOnly();
 
 
 private:

@@ -35,31 +35,53 @@ void setup() {
     Serial.begin(115200);
     delay(200);
 
-    Serial.println("Davis ISS Packet Sniffer (Phase 1 Build)");
-    Serial.println("--------------------------------------");
+Serial.println("Davis ISS Packet Sniffer (Phase 1 Build)");
+Serial.println("--------------------------------------");
 
-    if (!radio.begin()) {
-        Serial.println("Radio init FAILED");
-        while (1);
-    }
+// Start Receive mode only 
+radio.beginRXOnly();
 
-    Serial.println("Radio init OK");
-    radio.setHop(30);   // park on channel 30
-    Serial.print("Version: "); Serial.println(radio.readReg(0x10), HEX); // VERSION
-    Serial.print("OP Mode: "); Serial.println(radio.readReg(0x01), HEX); // OPMODE
-    Serial.print("FRF: ");
+Serial.print("Thresh after begin = 0x");
+Serial.println(radio.readReg(0x58), HEX);
 
+// Configure channel + RX parameters BEFORE entering RX
+radio.setHop(30);   // park on channel 30
+radio.applyConfig();
+
+// NOW enter RX — last step
+radio.enterRX();
+
+// Optional: wait for ModeReady
+delay(5);
+
+Serial.print("Version: "); Serial.println(radio.readReg(0x10), HEX);
+Serial.print("OP Mode: "); Serial.println(radio.readReg(0x01), HEX);
+Serial.print("FRF: ");
 Serial.print(radio.readReg(0x07), HEX); Serial.print(" ");
 Serial.print(radio.readReg(0x08), HEX); Serial.print(" ");
 Serial.println(radio.readReg(0x09), HEX);
-    dumpRegisters();
 
+
+
+Serial.print("IRQ1: "); Serial.println(radio.readReg(0x27), HEX);
+Serial.print("IRQ2: "); Serial.println(radio.readReg(0x28), HEX);
+
+Serial.print("DataModul (0x02): ");
+Serial.println(radio.readReg(0x02), HEX);
+
+for (int i = 0; i < 10; i++) {
+    Serial.print("RSSI: ");
+    Serial.println(radio.rawRSSI());
+    delay(50);
+}
+
+dumpRegisters();
 
 }
 
 
 
-
+/*
 void loop() {
     uint8_t buf[64];
     uint8_t len = 0;
@@ -85,7 +107,27 @@ void loop() {
         Serial.println();
     }
 }
+*/
+void loop() {
+    static uint32_t last = 0;
+    if (millis() - last > 200) {
+        last = millis();
 
+        int16_t rssi = radio.rawRSSI();
+        uint8_t irq1 = radio.readReg(0x27);  // REG_IRQFLAGS1
+        uint8_t irq2 = radio.readReg(0x28);  // REG_IRQFLAGS2
+        uint8_t thresh = radio.readReg(0x58); // RegRssiThresh
+
+        Serial.print("RSSI=");
+        Serial.print(rssi);
+        Serial.print("  IRQ1=0x");
+        Serial.print(irq1, HEX);
+        Serial.print("  IRQ2=0x");
+        Serial.print(irq2, HEX);
+        Serial.print("  Thresh=0x");
+        Serial.println(thresh, HEX);
+    }
+}
 
 
    

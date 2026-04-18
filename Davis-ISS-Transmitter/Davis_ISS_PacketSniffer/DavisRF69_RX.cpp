@@ -17,35 +17,34 @@ DavisRF69_RX::DavisRF69_RX(uint8_t csPin,
 bool DavisRF69_RX::begin() {
 
     pinMode(_resetPin, OUTPUT);
-Serial.println("RX begin() running");
-Serial.print("Using CS pin: ");
-Serial.println(_csPin);
+    Serial.println("RX begin() running");
+    Serial.print("Using CS pin: ");
+    Serial.println(_csPin);
 
-pinMode(_csPin, OUTPUT);
-digitalWrite(_csPin, HIGH);
+    pinMode(_csPin, OUTPUT);
+    digitalWrite(_csPin, HIGH);
 
-Serial.print("CS after init: ");
-Serial.println(digitalRead(_csPin));
-// Assert reset (active HIGH)
-//digitalWrite(_resetPin, HIGH);
-delay(10);   // VPTools uses 10 ms
+    Serial.print("CS after init: ");
+    Serial.println(digitalRead(_csPin));
 
-// Release reset
-//digitalWrite(_resetPin, LOW);
-delay(10);   // allow oscillator + registers to settle
+    // Hardware reset timing
+    delay(10);
+    delay(10);
 
-    
+    // --- STEP 1: Enter NORMAL Standby (Sequencer ON) ---
+    writeReg(REG_OPMODE, RF_OPMODE_STANDBY);
+    while (!(readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY));
+
+    // --- STEP 2: Apply all RX configuration ---
     configureCommon();
     configureRX();
 
-    setMode(RF69_MODE_STANDBY);
-    delay(100);
-
-    setMode(RF_OPMODE_RECEIVER);
-    delay(100);
+    // --- STEP 3: Disable Sequencer (still in Standby) ---
+    //writeReg(REG_OPMODE, RF_OPMODE_SEQUENCER_OFF | RF_OPMODE_STANDBY);
 
     return true;
 }
+
 
 void DavisRF69_RX::sleep() {
     setMode(RF69_MODE_SLEEP);
@@ -113,23 +112,26 @@ uint8_t DavisRF69_RX::readReg(uint8_t addr) {
     return val;
 }
 
-
 int16_t DavisRF69_RX::readRSSI() {
+    // Start a new RSSI measurement
     writeReg(REG_RSSICONFIG, 0x01);
+
+    // Wait for RSSI_DONE
     while (readReg(REG_RSSICONFIG) & 0x01);
-    return -readReg(REG_RSSIVALUE);
+
+    // Read raw register
+    uint8_t raw = readReg(REG_RSSIVALUE);
+
+    // Convert to dBm per datasheet
+    return -(raw / 2);
 }
+
 
 void DavisRF69_RX::configureCommon() {
     Serial.println("configureCommon() running");
     Serial.print("CS pin state before write: ");
 Serial.println(digitalRead(_csPin));
 
-Serial.println("Writing test value to 0x03...");
-writeReg(0x03, 0x12);
-uint8_t v = readReg(0x03);
-Serial.print("Readback 0x03 = ");
-Serial.println(v, HEX);
 Serial.print("bitrateMsb = ");
 Serial.println(_config.bitrateMsb, HEX);
 
@@ -144,8 +146,15 @@ Serial.println(_config.fdevLsb, HEX);
 
     writeReg(REG_DATAMODUL,
              RF_DATAMODUL_DATAMODE_PACKET |
-             RF_DATAMODUL_MODULATIONTYPE_FSK |
+             RF_DATAMODUL_MODULATIONTYPE_OOK |
              RF_DATAMODUL_MODULATIONSHAPING_00);
+
+Serial.print("After OOK write, DataModul = ");
+Serial.println(readReg(REG_DATAMODUL), HEX);
+
+Serial.print("After OOK write, SyncConfig = ");
+Serial.println(readReg(REG_SYNCCONFIG), HEX);
+
 
     writeReg(REG_BITRATEMSB, _config.bitrateMsb);
     writeReg(REG_BITRATELSB, _config.bitrateLsb);
@@ -153,13 +162,12 @@ Serial.println(_config.fdevLsb, HEX);
     writeReg(REG_FDEVMSB, _config.fdevMsb);
     writeReg(REG_FDEVLSB, _config.fdevLsb);
 
-    writeReg(REG_SYNCCONFIG,
-             RF_SYNCCONFIG_SYNCON |
-             RF_SYNCCONFIG_SYNCSIZE_1);
+    writeReg(REG_SYNCCONFIG, 0x00);
+
 
     //writeReg(REG_SYNCVALUE1, _config.syncValue);
-writeReg(REG_SYNCVALUE1, _config.syncValue1);
-writeReg(REG_SYNCVALUE2, _config.syncValue2);
+//writeReg(REG_SYNCVALUE1, _config.syncValue1);
+//writeReg(REG_SYNCVALUE2, _config.syncValue2);
 
     writeReg(REG_PACKETCONFIG1,
              RF_PACKET1_FORMAT_VARIABLE |
@@ -170,6 +178,14 @@ writeReg(REG_SYNCVALUE2, _config.syncValue2);
 }
 
 void DavisRF69_RX::configureRX() {
+
+    // Disable Listen Mode FIRST 
+    writeReg(0x0D, 0x00);  // RegListen1
+    writeReg(0x0E, 0x00);  // RegListen2
+    writeReg(0x0F, 0x00);  // RegListen3
+    // Disable Sequencer
+    //writeReg(REG_OPMODE, RF_OPMODE_SEQUENCER_OFF | RF_OPMODE_STANDBY);
+
     writeReg(REG_RXBW,
              RF_RXBW_DCCFREQ_010 |
              RF_RXBW_MANT_20 |
@@ -201,3 +217,16 @@ int16_t DavisRF69_RX::getRSSI() {
 uint8_t DavisRF69_RX::getReg(uint8_t addr) {
     return readReg(addr);
 }
+
+void DavisRF69_RX::enterRX() {
+
+    // Force Sequencer OFF + RX mode
+    writeReg(REG_OPMODE, RF_OPMODE_SEQUENCER_OFF | RF_OPMODE_RECEIVER);
+
+    // Wait for ModeReady
+    while (!(readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY)) {
+        // spin
+    }
+}
+
+
