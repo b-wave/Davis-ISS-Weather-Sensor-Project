@@ -2,7 +2,14 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include "DavisConfig.h"
-#include "DavisRFM69registers.h"
+#include "RFM69registers.h"
+
+// These values aren't in the upstream version of RF69registers.h
+#define REG_TESTAFC         0x71
+#define RF_FDEVMSB_4800     0x00 // Used for Davis console reception
+#define RF_FDEVLSB_4800     0x4e
+#define RF_FDEVMSB_9900     0x00 // Used for Davis ISS transmission
+#define RF_FDEVLSB_9900     0xa1
 //Version 4/15/2026
 class DavisRF69_RX {
 public:
@@ -31,6 +38,7 @@ public:
 
 
 private:
+    friend class DavisRadio;
     friend class DavisConfig; 
     uint8_t _csPin;
     uint8_t _irqPin;

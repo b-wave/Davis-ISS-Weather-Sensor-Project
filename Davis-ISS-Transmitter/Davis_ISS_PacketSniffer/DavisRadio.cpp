@@ -98,15 +98,31 @@ uint8_t DavisRadio::readReg(uint8_t addr) {
 
 }
 
+void DavisRadio::writeReg(uint8_t addr, uint8_t val) {
+    _rx.writeReg(addr, val);
+}
+/*
 void DavisRadio::applyConfig() {
     _config.applyRX(_rx);
-    _rx.enterRX();
-}
 
+    Serial.print("Thresh after applyRX: 0x");
+    Serial.println(_rx.getReg(0x58), HEX);
+
+    _rx.enterRX();
+
+    Serial.print("Thresh after enterRX: 0x");
+    Serial.println(_rx.getReg(0x58), HEX);
+
+}
+*/
 void DavisRadio::enterRX() {
     _rx.enterRX();
+  //  Serial.print("Thresh after enterRX: 0x");
+ //   Serial.println(_rx.getReg(0x58), HEX);
+
 }
 
 void DavisRadio::beginRXOnly() {
     _rx.begin();
+    _rx.enterRX();
 }

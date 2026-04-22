@@ -73,7 +73,7 @@ void DavisConfig::loadRegion(DavisRegion region) {
 
         packetConfig1 = 0x00;
         packetConfig2 = 0x00;
-        payloadLength = 10;
+        payloadLength = 0x0A;
 
         txId = 0x1234;
     }
@@ -92,7 +92,7 @@ void DavisConfig::loadRegion(DavisRegion region) {
 
         packetConfig1 = 0x00;
         packetConfig2 = 0x00;
-        payloadLength = 10;
+        payloadLength = 0x0A;
 
         txId = 0x1234;
     }
