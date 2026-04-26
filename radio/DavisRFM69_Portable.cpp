@@ -1,3 +1,9 @@
+// DavisRFM69_Portable.cpp
+// Portable version of the VPTools DavisRFM69 backend.
+// Cleaned of AVR-only dependencies (TimerOne, MsTimer2, RFM69registers).
+// Used for Teensy/ESP32 Davis ISS-compatible transmitter/sniffer work.
+// Original source: VPTools (b-wave/VPTools fork)
+//
 // Driver implementation for HopeRF RFM69W/RFM69HW, Semtech SX1231/1231H used for
 // compatibility with the frequency hopped, spread spectrum signals from a Davis Instrument
 // wireless Integrated Sensor Suite (ISS)
@@ -12,12 +18,8 @@
 //
 // In accordance with the CC-BY-SA, many modifications by GitHub user "kobuki".
 
-#include "DavisRFM69.h"
-#include "RFM69registers.h"
-#include "TimerOne.h"
-#include "MsTimer2.h"
+#include "DavisRFM69_Portable.h"
 #include "PacketFifo.h"
-
 #include <SPI.h>
 
 volatile byte DavisRFM69::DATA[DAVIS_PACKET_LEN];
@@ -69,7 +71,7 @@ void DavisRFM69::initialize(byte freqBand)
     // +17dBm and +20dBm are possible on RFM69HW
     // +13dBm formula: Pout=-18+OutputPower (with PA0 or PA1**)
     // +17dBm formula: Pout=-14+OutputPower (with PA1 and PA2)**
-    // +20dBpaym formula: Pout=-11+OutputPower (with PA1 and PA2)** and high power PA settings (section 3.3.7 in datasheet)
+    // +20dBm formula: Pout=-11+OutputPower (with PA1 and PA2)** and high power PA settings (section 3.3.7 in datasheet)
     ///* 0x11 */ { REG_PALEVEL, RF_PALEVEL_PA0_ON | RF_PALEVEL_PA1_OFF | RF_PALEVEL_PA2_OFF | RF_PALEVEL_OUTPUTPOWER_11111},
     ///* 0x13 */ { REG_OCP, RF_OCP_ON | RF_OCP_TRIM_95 }, // over current protection (default is 95mA)
     /* 0x18 */ { REG_LNA, RF_LNA_ZIN_50 | RF_LNA_GAINSELECT_AUTO }, // Not sure which is correct!
