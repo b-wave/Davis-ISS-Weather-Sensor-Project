@@ -16,7 +16,10 @@ This project is part of a larger effort to build a fully compatible Davis‑styl
 - Correct CRC16‑CCITT validation (6‑byte payload CRC)
 
 ### Clean receiver architecture
-- Mashup of DeKay,kaboui and b-wave (VP2_TFT) 
+- Mashup of of the following repos. 
+  - b-wave: (VP2_TFT) https://github.com/b-wave/VP2_TFT-Weather-Receiver
+  - dekay: (DavisRFM69) https://github.com/dekay/DavisRFM69  (not maintained?) 
+  - kobuki:(VPTools) https://github.com/kobuki/VPTools 
 - No prediction
 - No timing estimator
 - No repeated RX resets
@@ -40,7 +43,9 @@ This project is part of a larger effort to build a fully compatible Davis‑styl
 ## Hardware Requirements
 
 - Teensy (3.x or 4.x recommended)
-- RFM69W or RFM69HW module  
+- RFM69W or RFM69HW module (For US use 915MHz)
+  - RFM69HCW Tranciever Radio (915/868) http://adafru.it/3070
+  - 915 Spring Antenna  http://adafru.it/4269
 - Standard SPI wiring  
 - Optional: 3 LEDs for status indicators  
 
