@@ -1,13 +1,36 @@
-# Davis ISS Packet Sniffer  
-**REV: 042526 — VERS: 1.0**
 
+---
+# Davis ISS Packet Sniffer  
 A Teensy‑based packet sniffer for the Davis Instruments ISS (Integrated Sensor Suite).  
+
+Purpose:
 This tool receives, validates, and displays raw ISS packets using an RFM69 radio configured to match Davis VP/VP2 modulation and hop behavior.
 
 This project is part of a larger effort to build a fully compatible Davis‑style transmitter, including future extensions such as lightning detection.
 
 ---
+**REV: 042726 — VERS: 1.1**
+Notes:
+   - Fully funcional
+   - Added non-blocking Status LEDs
+      - Good Packet +CRC Check = Green LED
+      - CRC Error = Yellow LED
+      - Missed packet = Yellow LED
+      - Re-Sync - Red LED
+   - Working serial command processor
+     -   type "?" to see commands
+   - TODO: add packet stats 
+   - TODO: Channel Filter
+   - TODO: Raw Packet output for logging
 
+---
+**REV: 042526 — VERS: 1.0**
+- First Working version!
+- Detects and displays packets
+- Uses full hop table / logic
+- Adds Channel (hop), Rssi and other info
+
+---
 ## Features
 
 ### Accurate Davis ISS Packet Reception
