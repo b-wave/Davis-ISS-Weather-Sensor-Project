@@ -1,0 +1,188 @@
+/**
+ * AS5048BDriver.cpp — AS5048B Magnetic Angle Sensor Implementation
+ *
+ * ISS Packet Engine — Sensor Driver Architecture
+ *
+ * I2C register reads for 14-bit absolute angle. The AS5048B provides
+ * contactless angular measurement using a Hall sensor array beneath
+ * a diametrically magnetized disc magnet on the wind vane shaft.
+ *
+ * Key advantage over potentiometer vanes: no dead zone, no wear,
+ * no contact resistance variation, works through PCB/enclosure.
+ */
+
+#include "AS5048BDriver.h"
+
+// ---------------------------------------------------------------------------
+// Constructor
+// ---------------------------------------------------------------------------
+AS5048BDriver::AS5048BDriver(uint8_t addr, TwoWire* wire)
+    : _wire(wire)
+    , _addr(addr)
+    , _initialized(false)
+    , _status(SENSOR_NOT_INITIALIZED)
+    , _angleDeg(0.0f)
+    , _angleRaw(0)
+    , _agc(0)
+    , _zeroOffset(0.0f)
+    , _magnetOK(false)
+{}
+
+// ---------------------------------------------------------------------------
+// Initialization
+// ---------------------------------------------------------------------------
+bool AS5048BDriver::begin() {
+    _wire->begin();
+
+    // Verify the device is present by reading the AGC register
+    _wire->beginTransmission(_addr);
+    uint8_t err = _wire->endTransmission();
+
+    if (err != 0) {
+        _status = SENSOR_NOT_FOUND;
+        return false;
+    }
+
+    // Read AGC to verify communication
+    _agc = readRegister8(AS5048B_REG_AGC);
+
+    _initialized = true;
+    _status = SENSOR_OK;
+    return true;
+}
+
+// ---------------------------------------------------------------------------
+// Read — get angle, AGC, and magnet status
+// ---------------------------------------------------------------------------
+bool AS5048BDriver::read() {
+    if (!_initialized) {
+        _status = SENSOR_NOT_INITIALIZED;
+        return false;
+    }
+
+    // Read 14-bit angle (registers 0xFE high, 0xFF low)
+    _angleRaw = readRegister14(AS5048B_REG_ANGLE_HI, AS5048B_REG_ANGLE_LO);
+
+    // Read AGC for magnet health monitoring
+    _agc = readRegister8(AS5048B_REG_AGC);
+
+    // AGC indicates magnet signal strength:
+    //   Too low (< 20): magnet too far or missing
+    //   Good range (30-200): normal operation
+    //   Too high (> 240): magnet too close, saturated
+    _magnetOK = (_agc >= 20 && _agc <= 240);
+
+    // Convert 14-bit raw to degrees
+    _angleDeg = (float)_angleRaw * 360.0f / (float)AS5048B_RESOLUTION;
+
+    // Apply software zero offset
+    _angleDeg -= _zeroOffset;
+    if (_angleDeg < 0.0f) _angleDeg += 360.0f;
+    if (_angleDeg >= 360.0f) _angleDeg -= 360.0f;
+
+    _status = SENSOR_OK;
+    return true;
+}
+
+// ---------------------------------------------------------------------------
+// Accessors
+// ---------------------------------------------------------------------------
+float AS5048BDriver::getAngleDeg() const { return _angleDeg; }
+
+uint16_t AS5048BDriver::getAngleRaw14() const { return _angleRaw; }
+
+uint8_t AS5048BDriver::getDavisDirectionByte() const {
+    if (!_magnetOK) return 0;  // 0x00 = "no reading" in Davis protocol
+
+    uint8_t d = (uint8_t)(_angleDeg * 255.0f / 360.0f);
+
+    // Davis uses 0x00 as "no reading", so valid angles near 0°
+    // must map to 1 (minimum valid value)
+    if (d == 0) d = 1;
+
+    return d;
+}
+
+uint8_t AS5048BDriver::getAGC() const { return _agc; }
+bool AS5048BDriver::isMagnetOK() const { return _magnetOK; }
+
+// ---------------------------------------------------------------------------
+// Zero position programming
+// ---------------------------------------------------------------------------
+bool AS5048BDriver::programZeroPosition() {
+    if (!_initialized) return false;
+
+    // Read current angle
+    uint16_t currentAngle = readRegister14(AS5048B_REG_ANGLE_HI, AS5048B_REG_ANGLE_LO);
+
+    // Write to zero position registers
+    // Note: AS5048B has OTP (one-time programmable) zero registers.
+    // For development, use software offset instead.
+    writeRegister8(AS5048B_REG_ZERO_HI, (currentAngle >> 6) & 0xFF);
+    writeRegister8(AS5048B_REG_ZERO_LO, currentAngle & 0x3F);
+
+    return true;
+}
+
+void AS5048BDriver::setZeroOffset(float offsetDeg) {
+    _zeroOffset = offsetDeg;
+}
+
+// ---------------------------------------------------------------------------
+// I2C register access
+// ---------------------------------------------------------------------------
+uint8_t AS5048BDriver::readRegister8(uint8_t reg) {
+    _wire->beginTransmission(_addr);
+    _wire->write(reg);
+    _wire->endTransmission(false);  // restart
+    _wire->requestFrom(_addr, (uint8_t)1);
+
+    if (_wire->available()) {
+        return _wire->read();
+    }
+    return 0;
+}
+
+uint16_t AS5048BDriver::readRegister14(uint8_t regHi, uint8_t regLo) {
+    // AS5048B stores 14-bit angle across two registers:
+    // High register: bits 13-6, Low register: bits 5-0
+    uint8_t hi = readRegister8(regHi);
+    uint8_t lo = readRegister8(regLo);
+    return ((uint16_t)hi << 6) | (lo & 0x3F);
+}
+
+void AS5048BDriver::writeRegister8(uint8_t reg, uint8_t value) {
+    _wire->beginTransmission(_addr);
+    _wire->write(reg);
+    _wire->write(value);
+    _wire->endTransmission();
+}
+
+// ---------------------------------------------------------------------------
+// Self-test — verify device responds and magnet is present
+// ---------------------------------------------------------------------------
+bool AS5048BDriver::selfTest() {
+    if (!_initialized) return false;
+
+    // Re-read AGC
+    _agc = readRegister8(AS5048B_REG_AGC);
+
+    // Check device responds (AGC != 0 or 0xFF)
+    if (_agc == 0 || _agc == 0xFF) {
+        _status = SENSOR_NOT_FOUND;
+        return false;
+    }
+
+    // Check magnet health
+    if (!_magnetOK) {
+        _status = SENSOR_CAL_ERROR;
+        return false;
+    }
+
+    _status = SENSOR_OK;
+    return true;
+}
+
+SensorStatus AS5048BDriver::getStatus() { return _status; }
+const char*  AS5048BDriver::getName()   { return "AS5048B_WindDir"; }
+
