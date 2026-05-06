@@ -7,10 +7,10 @@
  * ISS Packet Engine — Sensor Driver Tests
  *
  * Wiring (Teensy 4.x):
- *   A0 (pin 14) — Solar cell voltage via resistor divider (100K/100K)
- *   A1 (pin 15) — Battery voltage via resistor divider (100K/200K)
- *   A2 (pin 16) — Battery thermistor (10K NTC + 10K fixed)
- *   A3 (pin 17) — LDR luminosity (LDR + 10K fixed)
+ *   A1 (pin 15) — Solar cell voltage via resistor divider (100K/100K)
+ *   A2 (pin 16) — Battery voltage via resistor divider (100K/200K)
+ *   A8 (pin 22) — Battery thermistor (10K NTC + 10K fixed)
+ *   A9 (pin 23) — LDR luminosity (LDR + 10K fixed)
  *
  * Bench testing:
  *   Apply known voltages with a bench supply or precision divider
@@ -88,7 +88,7 @@ void loop() {
 
     // Determine day/night
     const char* dayNight = "---";
-    if (ldrLight.isBelowLow())       dayNight = "NIGHT";
+    if (ldrLight.isBelowLow())       dayNight = "DARK";
     else if (ldrLight.isAboveHigh())  dayNight = "BRIGHT";
     else                              dayNight = "DIM";
 
@@ -116,5 +116,7 @@ void loop() {
         Serial.print("    LDR:    raw="); Serial.print(ldrLight.readRaw());
         Serial.print("  pin_V="); Serial.println(ldrLight.readRaw() / 1023.0f * 3.3f, 3);
         Serial.println("  ----------------------");
+        Serial.println("  #   Solar(V)  Batt(V) BattLow  Therm(C)  LDR(%)  DayNight");
+        Serial.println("  --- --------  ------- -------  --------  ------  --------");
     }
 }

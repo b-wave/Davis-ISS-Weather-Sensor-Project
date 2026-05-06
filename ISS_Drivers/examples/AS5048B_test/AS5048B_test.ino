@@ -1,6 +1,6 @@
-==============================================================================
-FILE: tests/AS5048B_test/AS5048B_test.ino
-==============================================================================
+//==============================================================================
+//FILE: tests/AS5048B_test/AS5048B_test.ino
+//==============================================================================
 /**
  * AS5048B_test.ino — Standalone test sketch for AS5048B wind direction sensor
  *
@@ -22,9 +22,10 @@ FILE: tests/AS5048B_test/AS5048B_test.ino
  * Output: Serial monitor at 115200 baud
  */
 
-#include "../../SensorDriver.h"
-#include "../../AS5048BDriver.h"
-
+#include <SensorDriver.h>
+#include <AS5048BDriver.h>
+//#include "../../SensorDriver.h"
+//#include "../../AS5048BDriver.h"
 // Configuration
 #define AS5048B_ADDR      0x40
 #define READ_INTERVAL_MS  250     // Fast updates for manual rotation testing
