@@ -1,4 +1,4 @@
-# Custom Davis-Integrated Weather Station
+# Custom Davis-Integrated Weather Station (Work in Progress) 
 <p align="center">
   <img src="resources/vantage-vue-wireless-integrated-sensor-suite-weather-station-6357.jpg" width="225" alt="Davis #6357 ISS">
 </p>
@@ -43,8 +43,14 @@ A modular weather station using Davis mechanical components, Teensy + RFM69 tele
 
 ## Status
 - Receiver test based on VPtools RXtest.ino to validate and decode Davis packets on Teensy 3.x hardware.  (done! 3/14/2026)
-- Transmitter test in progress based on VPtools TX_Test.ino
-- Hardware: Breadboard with Teensy 3.2 being used for RX and TX tests. Have some hardware to order:  Teensy 4.x boards, antennas, angle sensor breakout, hall-effect sensors,  ESP32 board, solar charge breakout board.  Will add hardware and datasheet folders.  
+- Develop/test a "Packet Sniffer" program to be used to gather Real ISS packets, output in Vebose or  Raw .csv files. (Note: This will also be used to validate the ISS Transmitter via over-the-air capture). The .ino is essentally done! Testing started by gathering ISS packets from a working Davis ISS and and using them to verify a python decoder which will be used to verufy the transmitter. (done! 5/5/26)
+- Test all hardware (described below) and drives on packet engine generator. (in progress 5/6/26) 
+- Integrate Transmitter software. (not started)
+- Test/validate Transmitter software (not started)
+- Assemble prototype for Davis ISS tranmitter replacement (not strted)
+- Deployment and test with a Davis console (not started) 
+  
+- Hardware: Breadboard with Teensy 3.2 being used for RX and TX tests. (done! 5/6/26) Uses Teensy 3.2 boards, RFM69HCW 915MHz tranciever module (SPI), helical antennas, AS5048A (SPI version) angle sensor breakout, analog voltage dividers (for Solar and Battery) voltages, a thermistor (for battery or enclosure temp), and a Cds LDR for light levels (may upgrade to UV sensor), Temp, Humidity, and Barometric pressure are done with BME280 ( tbd - upgrade for air quality?),   Switches currently simulate tge hall-effect sensors, and tested with a MOD-1016 lightning sensor breakout (i2c)  ESP32 board and solar charge breakout board tbd.  All drivers and test .ino and drivers are uploaded Will add hardware info and datasheet folders.  (Prototype tested OK: 5/6/26) 
 
 ## 1. Core Objectives
 
