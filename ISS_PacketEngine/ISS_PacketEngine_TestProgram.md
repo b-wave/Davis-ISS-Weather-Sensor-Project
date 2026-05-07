@@ -1,8 +1,9 @@
 # ISS Packet Engine — Test Program
+drafted by copilot 
 
 > **Dual-Teensy bench harness for validating ISS packet generation,
 > VP2 console decoding, and end-to-end CRC integrity.**
-
+> It is basically a Davis ISS transmitter without the RF!
 ---
 
 ## Table of Contents
@@ -54,27 +55,27 @@ Two Python tools run on the host PC:
 │                              HOST  PC                                    │
 │                                                                          │
 │  ┌────────────────┐     iss_bridge.py      ┌────────────────┐            │
-│  │  COM port A    │◄── USB CDC 115200 ───►│  COM port B    │            │
+│  │  COM port A    │◄── USB CDC 115200  ───►│  COM port B    │            │
 │  │  (e.g. COM5)   │                        │  (e.g. COM6)   │            │
 │  └───────┬────────┘                        └───────┬────────┘            │
-│          │  debug + raw hex log                    │  decoded output      │
-│          │                                         │                      │
-│  ┌───────┴────────────────────────────────────────┴────────┐             │
-│  │            iss_packet_decoder.py (offline)               │             │
-│  │    --selftest  |  --file  |  --compare  |  --packet      │             │
-│  └──────────────────────────────────────────────────────────┘             │
+│          │  debug + raw hex log                    │  decoded output     │
+│          │                                         │                     │
+│  ┌───────┴─────────────────────────────────────────┴────────┐            │
+│  │            iss_packet_decoder.py (offline)               │            │
+│  │    --selftest  |  --file  |  --compare  |  --packet      │            │
+│  └──────────────────────────────────────────────────────────┘            │
 └──────────┬──────────────────────────────────────────┬────────────────────┘
            │ USB cable                                │ USB cable
 ┌──────────┴────────────────┐         ┌───────────────┴───────────────────┐
 │       TEENSY  A           │         │          TEENSY  B                │
 │   ISS_packetEngine.ino    │         │        VP2_TFTd.ino               │
 │                           │         │                                   │
-│  USB  ← debug @ 115200    │         │  USB  ← decoded output @ 115200  │
+│  USB  ← debug @ 115200    │         │  USB  ← decoded output @ 115200   │
 │                           │         │                                   │
-│  Serial1 TX (pin 1) ─────┼── wire ─┼─► Serial1 RX (pin 0)            │
-│  Serial1 RX (pin 0) ◄────┼── wire ─┼── Serial1 TX (pin 1)            │
+│  Serial1 TX (pin 1)  ─────┼── wire ─┼─► Serial1 RX (pin 0)              │
+│  Serial1 RX (pin 0)  ◄────┼── wire ─┼── Serial1 TX (pin 1)              │
 │                           │         │                                   │
-│          GND ─────────────┼── wire ─┼── GND                            │
+│          GND ─────────────┼── wire ─┼── GND                             │
 └───────────────────────────┘         └───────────────────────────────────┘
 ```
 
@@ -169,15 +170,15 @@ expected CRC values and decoded fields.
 ```text
         TEENSY A                              TEENSY B
    (ISS_packetEngine)                       (VP2_TFTd)
-  ┌──────────────────┐                  ┌──────────────────┐
-  │              Pin 1├──── yellow ─────┤Pin 0             │
+  ┌──────────────────┐                 ┌──────────────────┐
+  │             Pin 1├──── yellow ─────┤Pin 0             │
   │  Serial1 TX      │    (TX → RX)    │      Serial1 RX  │
-  │                  │                  │                  │
-  │              Pin 0├──── green ──────┤Pin 1             │
-  │  Serial1 RX      │    (RX ← TX)   │      Serial1 TX  │
-  │                  │                  │                  │
+  │                  │                 │                  │
+  │              in 0├──── green ──────┤Pin 1             │
+  │  Serial1 RX      │    (RX ← TX)    │      Serial1 TX  │
+  │                  │                 │                  │
   │              GND ├──── black ──────┤GND               │
-  └──────────────────┘                  └──────────────────┘
+  └──────────────────┘                 └──────────────────┘
         │ USB                                  │ USB
         ▼                                      ▼
      [COM5]                                 [COM6]
@@ -191,17 +192,17 @@ expected CRC values and decoded fields.
   ┌─────────────────────────────────────────────────────────────────────┐
   │                         BREADBOARD                                  │
   │                                                                     │
-  │    ┌─────────────┐                        ┌─────────────┐          │
-  │    │  TEENSY A   │                        │  TEENSY B   │          │
-  │    │             │                        │             │          │
-  │    │  Pin 1 (TX) ├────────────────────────┤ Pin 0 (RX)  │          │
-  │    │             │      yellow wire       │             │          │
-  │    │  Pin 0 (RX) ├────────────────────────┤ Pin 1 (TX)  │          │
-  │    │             │      green wire        │             │          │
-  │    │  GND        ├────────────────────────┤ GND         │          │
-  │    │             │      black wire        │             │          │
-  │    │  USB ●      │                        │  USB ●      │          │
-  │    └──────┼──────┘                        └──────┼──────┘          │
+  │    ┌─────────────┐                        ┌─────────────┐           │
+  │    │  TEENSY A   │                        │  TEENSY B   │           │
+  │    │             │                        │             │           │
+  │    │  Pin 1 (TX) ├────────────────────────┤ Pin 0 (RX)  │           │
+  │    │             │      yellow wire       │             │           │
+  │    │  Pin 0 (RX) ├────────────────────────┤ Pin 1 (TX)  │           │
+  │    │             │      green wire        │             │           │
+  │    │  GND        ├────────────────────────┤ GND         │           │
+  │    │             │      black wire        │             │           │
+  │    │  USB ●      │                        │  USB ●      │           │
+  │    └──────┼──────┘                        └──────┼──────┘           │
   │           │                                      │                  │
   └───────────┼──────────────────────────────────────┼──────────────────┘
               │ USB cable                            │ USB cable
@@ -209,13 +210,13 @@ expected CRC values and decoded fields.
   ┌───────────────────────────────────────────────────────────────┐
   │                        HOST PC                                │
   │                                                               │
-  │   COM5 (Teensy A)             COM6 (Teensy B)                │
+  │   COM5 (Teensy A)             COM6 (Teensy B)                 │
   │       │                           │                           │
-  │       └──────── iss_bridge.py ────┘                          │
+  │       └──────── iss_bridge.py ────┘                           │
   │                      │                                        │
   │              iss_test_log.csv                                 │
   │                                                               │
-  │   (offline analysis: iss_packet_decoder.py --file log.txt)   │
+  │    (offline analysis: iss_packet_decoder.py --file log.txt)   │
   └───────────────────────────────────────────────────────────────┘
 ```
 
