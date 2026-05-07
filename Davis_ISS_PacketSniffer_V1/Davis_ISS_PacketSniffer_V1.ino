@@ -90,7 +90,7 @@ byte TRANSMITTER_STATION_ID = 3;
 float PACKET_INTERVAL = (40.0 + TRANSMITTER_STATION_ID) / 16.0 * 1000.0;
 
 // Resync threshold: after this many consecutive misses, park and wait
-#define RESYNC_THRESHOLD 12
+#define RESYNC_THRESHOLD 6  //was 12
 
 // =============================================================================
 // OUTPUT MODES
