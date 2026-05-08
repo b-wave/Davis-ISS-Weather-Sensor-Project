@@ -1,5 +1,5 @@
 /**
- * ISS_packetEngine.ino — Complete ISS Packet Engine with Sensor Drivers
+ * Davis_ISS_packetEngine.ino — Complete ISS Packet Engine with Sensor Drivers
  *
  * Generates Davis-format 8-byte weather packets from real sensor readings,
  * following the VP2/Vue/Custom transmit sequence rotation.
@@ -19,7 +19,7 @@
  * Wind speed (byte 1) and direction (byte 2) are in EVERY packet.
  *
  * Hardware:
- *   Teensy 4.x with RFM69 radio (SPI), BME280 (I2C), AS5048B (I2C),
+ *   Teensy 3.x/4.x with RFM69 radio (SPI), BME280 (I2C), AS5048A (SPI),
  *   hall-effect wind switch (interrupt), analog inputs, TX ID switch+LED.
  *
  * Build options:
@@ -34,7 +34,7 @@
 #include  <DavisCalibration.h>
 #include  <BME280Driver.h>
 #include  <WindSpeedDriver.h>
-#include  <AS5048BDriver.h>
+#include  <AS5048BDriver.h> //Need AS5048ADriver.h (SPI)
 #include  <AnalogDriver.h>
 #include  <TxIdManager.h>
 
@@ -42,22 +42,25 @@
 // BUILD CONFIGURATION
 // ============================================================================
 
-#define USE_TEST_STUBS    1       // 1 = no hardware needed (stub sensors)
-#define TX_SEQ_MODE       2       // 0=VP2, 1=Vue, 2=Custom hybrid
+#define USE_TEST_STUBS    0       // 1 = no hardware needed (stub sensors)
+#define TX_SEQ_MODE       0       // 0=VP2, 1=Vue, 2=Custom hybrid
 #define SERIAL_DEBUG      1       // 1 = verbose USB serial debug output
 #define SERIAL1_OUTPUT    1       // 1 = raw packet output on Serial1 (bridge)
 
-// Pin assignments (must match Sensor Driver Architecture doc)
-#define PIN_WIND_SPEED    2       // Interrupt — hall-effect switch
-#define PIN_AS3935_IRQ    3       // Future — lightning detector interrupt
+// Pin assignments (Match to prototype -- Uptdate Sensor Driver Architecture doc)
+#define PIN_WIND_SPEED    5       // Interrupt — hall-effect switch
+#define PIN_AS5048A_CS    9       // SPI CS for wind Direction
 #define PIN_TX_SWITCH     4       // Momentary pushbutton (INPUT_PULLUP)
-#define PIN_TX_LED        5       // Status LED
-#define PIN_AS3935_CS     6       // Future — SPI CS for lightning detector
+#define PIN_TX_LED        14       // Status LED
 #define PIN_RFM69_CS      10      // SPI CS for radio
-#define PIN_SOLAR_V       A0      // Analog — solar cell voltage
-#define PIN_BATT_V        A1      // Analog — battery voltage
-#define PIN_BATT_THERM    A2      // Analog — battery thermistor
-#define PIN_LDR           A3      // Analog — LDR luminosity
+#define PIN_RFM69_IRQ     2       // Interrupt (IO0) for radio
+#define PIN_RFM69_RES     3       // Reset (RES) for radio
+#define PIN_SOLAR_V       A1      // Analog — solar cell voltage
+#define PIN_BATT_V        A2      // Analog — battery voltage
+#define PIN_BATT_THERM    A8      // Analog — battery thermistor
+#define PIN_LDR           A9      // Analog — LDR luminosity (UV?)
+#define PIN_AS3935_IRQ    7       // Future — lightning detector interrupt
+#define PIN_AS3935_CS     8       // Future — SPI CS for lightning detector
 
 // Timing
 #define PACKET_INTERVAL_MS  2500  // 2.5 seconds — Davis standard for TX ID 0

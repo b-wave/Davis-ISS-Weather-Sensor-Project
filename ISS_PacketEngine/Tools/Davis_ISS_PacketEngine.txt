@@ -1,0 +1,303 @@
+
+# Davis ISS Weather Station — Packet Engine Project
+
+> This is a sub-project useful for testing of the 
+> Custom Davis Vantage Pro2 / Vue ISS replacement built on Teensy 4.x
+> microcontrollers with RFM69 radio, BME280, AS5048B, and hall-effect
+> anemometer. Generates authentic Davis-format 8-byte wireless packets
+> that a stock VP2 console will accept.
+
+---
+
+## Quick Start
+
+### 1. Install the ISS_Drivers Library
+
+```bash
+# Symlink (recommended — edits propagate instantly)
+ln -s /path/to/this-repo/libraries/ISS_Drivers ~/Arduino/libraries/ISS_Drivers
+
+# Or copy if symlinks aren't supported
+cp -r libraries/ISS_Drivers ~/Arduino/libraries/
+```
+
+### 2. Flash the Packet Engine (Bench Test Mode)
+
+1. Open `firmware/ISS_packetEngine/ISS_packetEngine.ino` in Arduino IDE
+2. Set `USE_TEST_STUBS 1` for hardware-free testing
+3. Select your Teensy board and upload
+4. Open Serial Monitor at 115200 — packets will start flowing
+
+### 3. Run the Python Decoder Self-Test
+
+```bash
+cd tools
+pip install -r requirements.txt
+python iss_packet_decoder.py --selftest       # 27/27 should pass
+```
+
+### 4. Dual-Teensy Bridge Test
+
+```bash
+# Wire Teensy A ↔ Teensy B (see docs/TestProgram.md for diagram)
+python iss_bridge.py
+```
+
+### 5. Ground Truth Validation
+
+```bash
+# Capture real ISS packets with the PacketSniffer
+python iss_packet_decoder.py --serial COM7 --baud 115200 --csv captures/truth.csv
+
+# Compare Packet Engine output against real hardware
+python iss_packet_decoder.py --compare captures/engine.csv --truth captures/truth.csv
+```
+
+---
+
+## Packet Types
+
+| Type | Hex | Source Sensor | Driver | Status |
+|------|-----|-------------|--------|--------|
+| Temperature | 0x80 | BME280 | BME280Driver | ✅ Active |
+| Humidity | 0xA0 | BME280 | BME280Driver | ✅ Active |
+| Wind Speed | byte 1 | Hall-effect switch | WindSpeedDriver | ✅ Active |
+| Wind Direction | byte 2 | AS5048B | AS5048BDriver | ✅ Active |
+| Wind Gust | 0x90 | Hall-effect peak | WindSpeedDriver | ✅ Active |
+| Battery Voltage | 0x20 | Resistor divider | AnalogDriver | ✅ Active |
+| Solar PV Voltage | 0x70 | Resistor divider | AnalogDriver | ✅ Active |
+| Rain | 0xE0 | Bucket tip counter | — | 🔲 Planned |
+| Rain Rate | 0x50 | Time since last tip | — | 🔲 Planned |
+| UV Index | 0x40 | TBD | — | 🔲 Planned |
+| Solar Radiation | 0x60 | TBD | — | 🔲 Planned |
+| Lightning | 0x30 | AS3935 Franklin | — | 🔲 Future |
+
+---
+
+## Hardware
+
+| Component | Part | Interface | Pins (Teensy 4.x) |
+|-----------|------|-----------|-------------------|
+| Radio | RFM69HCW | SPI0 | CS=10, MOSI=11, MISO=12, SCK=13 |
+| Temp/Humidity/Baro | BME280 | I2C (0x76) | SDA=18, SCL=19 |
+| Wind Direction | AS5048B | I2C (0x40) | SDA=18, SCL=19 |
+| Wind Speed | Hall-effect switch | Interrupt | Pin 2 (FALLING) |
+| Solar Voltage | Resistor divider | Analog | A0 (pin 14) |
+| Battery Voltage | Resistor divider | Analog | A1 (pin 15) |
+| Battery Thermistor | 10K NTC | Analog | A2 (pin 16) |
+| LDR (optional) | Photoresistor | Analog | A3 (pin 17) |
+| Lightning (future) | AS3935 | SPI0 | CS=6, IRQ=3 |
+| TX ID Switch | Momentary button | GPIO | Pin 4 (pullup) |
+| TX ID LED | Standard LED | GPIO | Pin 5 |
+
+---
+
+## Transmit Sequences
+
+Three selectable via `TX_SEQ_MODE` in `ISS_packetEngine.ino`:
+
+**Custom Hybrid (default, mode 2):**
+```
+Slot:  0     1     2     3     4     5     6     7     8     9
+Type:  Temp  Rain  Rate  BattV Temp  Rain  Rate  SolPV Temp  Rain
+Slot:  10    11    12    13    14    15    16    17    18    19
+Type:  Rate  Lght* Temp  Rain  Rate  Gust  Temp  Rain  Rate  Humid
+```
+*Lightning uses 0x30 slot. If console rejects it, fallback to 0xC0 or custom nibble.
+
+VP2 (mode 0) and Vue (mode 1) sequences also available.
+
+---
+
+## Testing Philosophy
+
+Three-layer validation strategy (see `docs/ValidationTestPlan.md`):
+
+1. **Decoder Self-Test** — Validates formulas against DeKay's published STRMON captures (27/27 pass)
+2. **Sniffer Ground Truth** — Real ISS packets cross-checked against console display
+3. **Cross-Validation** — Packet Engine output compared byte-for-byte against sniffer corpus
+
+The RF link is the **only untested path** — everything else is validated without needing wireless.
+
+---
+
+## Dependencies
+
+**Arduino Libraries** (install via Library Manager):
+- Adafruit BME280 Library
+- Adafruit Unified Sensor
+
+**Python 3.8+:**
+- pyserial
+
+---
+
+## References
+
+- [DeKay's Davis protocol reverse engineering](https://github.com/dekay/im-me/blob/master/pocketwx/src/protocol.txt)
+- [VPTools by kobuki](https://github.com/kobuki/VPTools) — Davis OEM wind calibration, TX sequences
+- [Davis Serial Protocol Docs v2.3.0](https://www.davisinstruments.com/support/weather/download/VantageSerialProtocolDocs_v230.pdf)
+- [b-wave Davis ISS PacketSniffer](https://github.com/b-wave/Davis-ISS-Weather-Sensor-Project)
+
+---
+
+*Project by Steve — BrainWave Labs, San Diego*
+
+
+Davis-ISS-Weather-Station/
+│
+├── README.md
+├── LICENSE
+├── .gitignore
+│
+├── firmware/                          ← All Teensy / Arduino sketches
+│   ├── ISS_packetEngine/
+│   │   └── ISS_packetEngine.ino         Main transmitter firmware
+│   ├── VP2_TFTd/
+│   │   └── VP2_TFTd.ino                Receiver / TFT decoder
+│   └── PacketSniffer/
+│       └── PacketSniffer.ino            RF capture tool (ground truth)
+│
+├── libraries/                         ← Symlink or copy to Arduino/libraries/
+│   └── ISS_Drivers/
+│       ├── library.properties
+│       ├── src/
+│       │   ├── SensorDriver.h
+│       │   ├── DavisCalibration.h
+│       │   ├── BME280Driver.h / .cpp
+│       │   ├── WindSpeedDriver.h / .cpp
+│       │   ├── AS5048BDriver.h / .cpp
+│       │   ├── AnalogDriver.h / .cpp
+│       │   └── TxIdManager.h / .cpp
+│       └── examples/
+│           ├── BME280_test/
+│           ├── WindSpeed_test/
+│           ├── AS5048B_test/
+│           └── AnalogChannels_test/
+│
+├── tools/                             ← Python test & validation scripts
+│   ├── iss_bridge.py
+│   ├── iss_packet_decoder.py
+│   ├── bridge_config.json
+│   └── requirements.txt
+│
+├── docs/                              ← Markdown docs (render on GitHub)
+│   ├── TestProgram.md
+│   ├── ValidationTestPlan.md
+│   ├── SensorDriverArchitecture.md
+│   └── images/
+│
+├── captures/                          ← Sniffer ground truth data
+│   └── README.md
+│
+└── hardware/                          ← Schematics, PCB, BOM (future)
+    └── README.md
+
+
+
+That’s a great next step, Steve — documenting this little test rig will make it a permanent reference for anyone who wants to understand Davis packet timing and sequencing. Here’s a **ready‑to‑commit Markdown draft** you can drop straight into your repo as `README.md` or `ISS_packetEngine.md`.
+
+---
+
+## ISS Packet Engine Test Program
+
+### Purpose
+This sketch emulates a Davis ISS transmitter in software.  
+It’s designed to verify **packet timing**, **sequence order**, and **field encoding** before any RF hardware is attached.  
+The virtual ISS runs the real Davis cadence (2.5 s + ID × 1/16 s) and cycles through the standard packet types:
+
+```
+E → 5 → 8 → A → 6 → 4 → [optional 9 gust]
+```
+
+Each packet is built according to the Davis protocol and printed to the serial port with a valid CRC‑16 CCITT checksum.
+
+---
+
+### How to Run
+1. Load `ISS_packetEngine.ino` on a Teensy 3.x or 4.x.  
+2. Open the serial monitor at 115200 baud.  
+3. Use the command keys:
+   - `V` – single‑step one packet immediately  
+   - `f` – toggle speed factor (1× → 2× → 4× → 8× → 16×)  
+   - `u` – increase temperature +1 °F  
+   - `j` – rotate wind direction +10 °  
+4. Observe the printed 8‑byte packets and CRC values.  
+5. Optionally bridge two Teensys with a Python script to feed packets into your VP2_TFTd decoder for live validation.
+
+---
+
+### Packet Types and Tests
+
+#### **0x8 – Temperature**
+- **Bytes 3–4:** Temp × 10 + offset 320 (so 32.0 °F → 320).  
+- **Test:** Change `vIss.tempF` and confirm console shows correct temperature.  
+- **Expected:** Console rounds to nearest 0.1 °F.
+
+#### **0xA – Humidity**
+- **Bytes 3–4:** Humidity × 10 (ten‑bit value).  
+- **Test:** Adjust `vIss.humidity` and verify decoder reports correct %RH.  
+- **Expected:** Console rounds to nearest 1 %.
+
+#### **0xE – Rain Counter**
+- **Bytes 3–4:** Total bucket tips (0.01 in per click).  
+- **Test:** Increment `vIss.rainClicks++`; decoder should accumulate rainfall.  
+- **Expected:** Console wraps counter correctly when it rolls over.
+
+#### **0x5 – Rain Rate**
+- **Bytes 3–4:** Rain rate (0.01 in/hr per count).  
+- **Test:** Simulate increasing `rainClicks`; decoder should compute rate.  
+- **Expected:** Rate changes smoothly with click frequency.
+
+#### **0x6 – Solar Radiation**
+- **Bytes 3–4:** Counts → W/m² via `((byte3<<8)+byte4)>>6 × 1.757936`.  
+- **Test:** Set `solarWm2` to known values (200–1000 W/m²).  
+- **Expected:** Decoder displays solar radiation ≈ input value.  
+- **Optional:** Replace stub with measured solar‑cell voltage scaled to W/m².
+
+#### **0x4 – UV Index**
+- **Bytes 3–4:** Counts → UV index via `((byte3<<8)+byte4)>>6 / 50.0`.  
+- **Test:** Set `uvIndex` to known values (0–12).  
+- **Expected:** Decoder shows UV index ≈ input value.  
+- **Optional:** Connect your new UV sensor and scale its voltage output.
+
+#### **0x9 – Gust Snapshot (APRS‑style)**
+- **Derived:** 10‑minute rolling maximum wind speed.  
+- **Logic:** If current wind > gustMax → update and reset age; else age and expire after ~10 min.  
+- **Test:** Feed varying wind speeds; decoder should show gust updates only when new max occurs.  
+- **Optional:** Skip packet when gust unchanged to free slot for custom packets.
+
+---
+
+### CRC Verification
+All packets use **CRC‑16 CCITT** (poly 0x1021, init 0x0000).  
+Your VP2_TFTd decoder should report “CRC OK” for every packet.
+
+---
+
+### Custom Packet Ideas
+Unused or idle slots can carry:
+- Lightning sensor data  
+- Diagnostic telemetry (voltage, RSSI, error counts)  
+- Experimental sensor types (soil moisture, UV voltage, etc.)  
+
+The console may ignore unknown types, but your custom receiver can decode them.
+
+---
+
+### Development Notes
+- Timing verified against Davis hop sequence and 2.5 s base interval.  
+- CRC routine matches VP2_TFTd decoder.  
+- Designed for Teensy 3.x/4.x with Serial monitor only (no RF).  
+- Ideal for validating packet structure before integrating radio hardware.
+
+---
+
+### References
+- Davis protocol spec: [`protocol.txt`](https://raw.githubusercontent.com/dekay/im-me/refs/heads/master/pocketwx/src/protocol.txt)   
+- VP2_TFTd decoder implementation: [`VP2_TFTd.ino`](https://github.com/b-wave/VP2_TFT-Weather-Receiver/blob/master/VP2_TFTd/VP2_TFTd.ino)   
+- Davis ISS Packet Sniffer reference: [`Davis_ISS_PacketSniffer_V1`](https://github.com/b-wave/Davis-ISS-Weather-Sensor-Project/tree/main/Davis_ISS_PacketSniffer_V1)   
+
+---
+
+Would you like me to extend this Markdown with a **“Testing Setup”** section showing the dual‑Teensy + Python bridge wiring and serial configuration? That would make it a complete lab‑ready document for your repo.
