@@ -1,6 +1,14 @@
-#include <AS5048ADriver.h>
+/**
+This is just a quick test to check hardware. 
+We are using an AS5048A w/ SPI interface
+Works! 
+CS= Pin 9 (CS2) on the Teensy 3.2
 
-AS5048A angleSensor(9, true);
+*/
+
+#include <AS5048A.h> //Very quick & dirty, Need: AS5048ADriver + SensorDriver.h 
+
+AS5048A angleSensor(9, true); 
 
 void setup()
 {
@@ -13,7 +21,7 @@ void loop()
 	delay(1000);
 
 	float val = angleSensor.getRotationInDegrees();
-	Serial.print("\nGot rotation of: ");
+	Serial.print("\nRotation: ");
 	Serial.println(val);
 	Serial.println("State: ");
 	angleSensor.printState();

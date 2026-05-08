@@ -6,7 +6,7 @@
  *
  * ISS Packet Engine — Sensor Driver Tests
  *
- * Wiring (Teensy 4.x):
+ * Wiring (Teensy 3.x/4.x):
  *   A1 (pin 15) — Solar cell voltage via resistor divider (100K/100K)
  *   A2 (pin 16) — Battery voltage via resistor divider (100K/200K)
  *   A8 (pin 22) — Battery thermistor (10K NTC + 10K fixed)
