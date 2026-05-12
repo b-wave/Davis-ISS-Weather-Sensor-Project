@@ -16,109 +16,52 @@
  * the DIP switch setting on a real ISS. ID=0 here = station 1 on console.
  * Reference: VPTools AnemometerTX by kobuki
  */
-
+//new adds Davis style button behaviour: 
 #ifndef TX_ID_MANAGER_H
 #define TX_ID_MANAGER_H
 
 #include <Arduino.h>
 #include <EEPROM.h>
 
-#define TX_ID_MIN          0
-#define TX_ID_MAX          7
-#define TX_ID_EEPROM_ADDR  0        // EEPROM address for persistent storage
-#define TX_ID_EEPROM_MAGIC 0xDA     // Magic byte to verify EEPROM is initialized
+#define TXID_EEPROM_ADDR   0
+#define TXID_MIN           0
+#define TXID_MAX           7
 
-#define DEBOUNCE_MS        50       // Button debounce time
-#define SHORT_PRESS_MS     1000     // Max duration for short press
-#define LONG_PRESS_MS      3000     // Min duration for long press
-#define BLINK_ON_MS        200      // LED on time per blink
-#define BLINK_OFF_MS       300      // LED off time per blink
-#define BLINK_PAUSE_MS     1000     // Pause after blink sequence
-
-enum TxIdState {
-    TXID_IDLE,
-    TXID_PRESSED,
-    TXID_BLINKING,
-    TXID_DISPLAY_MODE
-};
+// Timing (ms)
+#define DEBOUNCE_MS        50
+#define LONG_PRESS_MS      2000
+#define BLINK_INTERVAL_MS  300
 
 class TxIdManager {
 public:
-    /**
-     * @param switchPin  Digital pin for momentary pushbutton (INPUT_PULLUP)
-     * @param ledPin     Digital pin for status LED (OUTPUT)
-     * @param defaultId  Default TX ID if EEPROM is uninitialized
-     */
-    TxIdManager(uint8_t switchPin, uint8_t ledPin, uint8_t defaultId = 0);
-
-    /** Initialize pins and load ID from EEPROM */
+    TxIdManager(uint8_t pinButton, uint8_t pinLED, uint8_t defaultId = 0);
+    bool wasButtonPressed();    //Not used? added for compatibility
     void begin();
-
-    /**
-     * Call from loop() — handles debounce, press detection, LED blinking.
-     * Non-blocking: uses millis(), never calls delay().
-     */
     void update();
 
-    /** Get current transmitter ID (0-7) */
-    uint8_t getCurrentId() const;
-
-    /** Set TX ID programmatically (also saves to EEPROM) */
-    void setId(uint8_t id);
-
-    /** Get current LED state (for external LED management if needed) */
-    bool getLedState() const;
-
-    /** Check if a button event just occurred (cleared after reading) */
-    bool wasButtonPressed();
+    uint8_t getCurrentId() const { return _currentId; }
+    void flashTx();
 
 private:
-    uint8_t  _switchPin;
-    uint8_t  _ledPin;
-    uint8_t  _txId;
-    uint8_t  _defaultId;
+    enum Mode { NORMAL, PRESSING, PROGRAM_FLASH, TAP_COUNT, CONFIRM };
+    Mode _mode;
 
-    // State machine
-    TxIdState _state;
-    bool      _ledOn;
-    bool      _buttonEvent;
+    uint8_t _pinButton, _pinLED;
+    uint8_t _currentId;
+    uint8_t _tapCount;
+    uint8_t _confirmCount;
 
-    // Timing
-    uint32_t _pressStartMs;
-    uint32_t _lastDebounceMs;
-    uint32_t _blinkStartMs;
-    uint8_t  _blinksRemaining;
-    bool     _blinkPhase;  // true = on, false = off
+    uint32_t _pressStart;
+    uint32_t _lastTapTime;
+    uint32_t _flashTimer;
 
-    // Button state
-    bool     _lastButtonState;
-    bool     _stableButtonState;
+    bool _flashState;
+    bool _lastButtonState;
 
-    // Internal
-    void saveToEEPROM();
+    void blinkOnce();
+    void finalizeId();
     void loadFromEEPROM();
-    void startBlinkSequence(uint8_t count);
-    void updateBlink();
+    void saveToEEPROM();
 };
 
-// =============================================================================
-// Test stub
-// =============================================================================
-class TxIdManagerStub {
-public:
-    TxIdManagerStub(uint8_t defaultId = 0) : _id(defaultId), _pressed(false) {}
-    void begin() {}
-    void update() {}
-    uint8_t getCurrentId() const { return _id; }
-    void setId(uint8_t id) { _id = id & 0x07; }
-    bool getLedState() const { return false; }
-    bool wasButtonPressed() { bool p = _pressed; _pressed = false; return p; }
-    void simulatePress() { _id = (_id + 1) & 0x07; _pressed = true; }
-
-private:
-    uint8_t _id;
-    bool    _pressed;
-};
-
-#endif // TX_ID_MANAGER_H
-
+#endif
