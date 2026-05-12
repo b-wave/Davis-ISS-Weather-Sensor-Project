@@ -34,16 +34,17 @@
 #include  <DavisCalibration.h>
 #include  <BME280Driver.h>
 #include  <WindSpeedDriver.h>
-#include  <AS5048BDriver.h> //Need AS5048ADriver.h (SPI)
+#include  <AS5048ADriver.h> // (SPI) for breadbord 
 #include  <AnalogDriver.h>
 #include  <TxIdManager.h>
+#include  <AS3935_I2C_Driver.h> //(I2C) for breadboard
 
 // ============================================================================
 // BUILD CONFIGURATION
 // ============================================================================
 
 #define USE_TEST_STUBS    0       // 1 = no hardware needed (stub sensors)
-#define TX_SEQ_MODE       0       // 0=VP2, 1=Vue, 2=Custom hybrid
+#define TX_SEQ_MODE       1       // 0=VP2, 1=Vue, 2=Custom hybrid
 #define SERIAL_DEBUG      1       // 1 = verbose USB serial debug output
 #define SERIAL1_OUTPUT    1       // 1 = raw packet output on Serial1 (bridge)
 
@@ -177,7 +178,8 @@ void appendCRC(uint8_t *pkt) {
     // --- Real hardware ---
     BME280Driver    bme(0x76, &Wire, 0.0f);
     WindSpeedDriver windSpeed(PIN_WIND_SPEED, true);  // EC enabled
-    AS5048BDriver   windDir(0x40, &Wire);
+   // AS5048ADriver   windDir(0x40, &Wire);
+    AS5048ADriver   windDir(PIN_AS5048A_CS);
     AnalogDriver    solarV(PIN_SOLAR_V, 2.0f, ANALOG_VOLTAGE, 8);
     AnalogDriver    battV(PIN_BATT_V, 1.5f, ANALOG_VOLTAGE, 8);
     AnalogDriver    battTherm(PIN_BATT_THERM, 1.0f, ANALOG_NTC_THERM, 16);
@@ -733,6 +735,7 @@ void loop() {
         #if SERIAL1_OUTPUT
             outputPacketSerial1();
         #endif
+        //txId.flashTx();
 
         // Advance sequence index (wraps 0-19)
         txSeqIndex = (txSeqIndex + 1) % TX_SEQ_LENGTH;
