@@ -1,19 +1,31 @@
-/**
-*   File: ISSTx.ino
-*   Transmits Davis ISS Weatherstation Packets
-*   (c) 2026 Brainwave Labs
-*
-*   Revision: 0.1  
-*   Version: 051526 
-*   First complete version.  Compiles, Not tested.
-*   Note:   1) Uses local files not custom libraries. The custom include. Place all the included files should be in the sketch folder.  
-*           2) Uses Teensy 3.2 Not optiimised for Teensy 4.x but is compatible with both. 
-*           3) See hardware section for modulesand datasheets. 
-*
-*  Sketch uses 13088 bytes (4%) of program storage space. Maximum is 262144 bytes.
-*  Global variables use 2996 bytes (4%) of dynamic memory, leaving 62540 bytes for local * 
-*  variables. Maximum is 65536 bytes.
-*/
+// =============================================================================
+// Davis ISS Packet Transmitter — V1.0.0
+// =============================================================================
+// Transmits Davis ISS Weather station compatable packets
+// File:  ISSTx.ino
+// REV:   051526
+// VERS:  1.0.0
+// License: MIT License Copyright (c) 2026 Steve, Brainwave Labs 
+// ------------------------------------------------------------------------------
+
+// CHANGELOG:
+//  Revision: 051526 
+//  Changes: 
+//    • First complete version.  Compiles, Not tested.
+//  Notes:   
+//    •  Uses local files not custom libraries. 
+//      - Place all the included files with this .ino in the sketch folder.  
+//    •  Uses Teensy 3.2 Not optimized for Teensy 4.x but is compatible with both. 
+//    •  See hardware section for modules and datasheets. 
+//    •  Frequencies are currently only for US 915MHz, change as needed.
+//      - Experimental version, use at your own risk. 
+//      - Please check with local restrictions and frequency bands.
+//    •  Compiles on Teensey 3.2! 
+//       Sketch uses 13088 bytes (4%) of program storage space. Maximum is 262144 bytes.
+//       Global variables use 2996 bytes (4%) of dynamic memory, leaving 62540 bytes for local
+//       variables. Maximum is 65536 bytes.
+// ==============================================================================
+
 #include "DavisRFM69.h"
 #include "TxPacketEngine.h"
 #include "HopScheduler.h"
