@@ -44,8 +44,8 @@ A modular weather station using Davis mechanical components, Teensy + RFM69 tele
 ## Status
 - Receiver test based on VPtools RXtest.ino to validate and decode Davis packets on Teensy 3.x hardware.  (done! 3/14/2026)
 - Develop/test a "Packet Sniffer" program to be used to gather Real ISS packets, output in Vebose or  Raw .csv files. (Note: This will also be used to validate the ISS Transmitter via over-the-air capture). The .ino is essentally done! Testing started by gathering ISS packets from a working Davis ISS and and using them to verify a python decoder which will be used to verufy the transmitter. (done! 5/5/26)
-- Test all hardware (described below) and drives on packet engine generator. (in progress 5/6/26) 
-- Integrate Transmitter software. (not started)
+- Test all hardware (described below) and drives on packet engine generator. (Completed 5/13/2026) 
+- Integrate Transmitter software. (Started: 5/15/2026)
 - Test/validate Transmitter software (not started)
 - Assemble prototype for Davis ISS tranmitter replacement (not strted)
 - Deployment and test with a Davis console (not started) 
