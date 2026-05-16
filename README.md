@@ -50,7 +50,23 @@ A modular weather station using Davis mechanical components, Teensy + RFM69 tele
 - Assemble prototype for Davis ISS tranmitter replacement (not strted)
 - Deployment and test with a Davis console (not started) 
   
-- Hardware: Breadboard with Teensy 3.2 being used for RX and TX tests. (done! 5/6/26) Uses Teensy 3.2 boards, RFM69HCW 915MHz tranciever module (SPI), helical antennas, AS5048A (SPI version) angle sensor breakout, analog voltage dividers (for Solar and Battery) voltages, a thermistor (for battery or enclosure temp), and a Cds LDR for light levels (may upgrade to UV sensor), Temp, Humidity, and Barometric pressure are done with BME280 ( tbd - upgrade for air quality?),   Switches currently simulate tge hall-effect sensors, and tested with a MOD-1016 lightning sensor breakout (i2c)  ESP32 board and solar charge breakout board tbd.  All drivers and test .ino and drivers are uploaded Will add hardware info and datasheet folders.  (Prototype tested OK: 5/6/26) 
+- Hardware: Breadboard with Teensy 3.2 being used for RX and TX tests. (done! 5/6/26)
+
+  -  Uses Teensy 3.2 boards, RFM69HCW 915MHz tranciever module (SPI), helical antennas, AS5048A (SPI version) angle sensor breakout, analog voltage dividers (for Solar and Battery) voltages, a thermistor (for battery or enclosure temp), and a Cds LDR for light levels (may upgrade to UV sensor), Temp, Humidity, and Barometric pressure are done with BME280 ( tbd - upgrade for air quality?),   Switches currently simulate tge hall-effect sensors, and tested with a MOD-1016 lightning sensor breakout (i2c)  ESP32 board and solar charge breakout board tbd.  All drivers and test .ino and drivers are uploaded Will add hardware info and datasheet folders.  (Prototype tested OK: 5/6/26)
+
+<p align="center">
+  <img src="resources/20260513_103645.jpg" width="350" alt="Protoboard Assy.">
+</p>
+
+I needed a simple Test jig for testing the magnetic position sensor, mounts on the AS5048 breakout board. It is primitve but it works for testing. For example the position sensor software finds the base position, in the case of the Davis ISS it is 90-degrees due to the counterweight to balance the wind direction pointer, as the power is first turned on the software must do this calibration.
+
+<p align="center">
+  <img src="resources/20260513_103700.jpg" width="200" alt="Position Sensor Test Assy.">
+</p>
+This assemby consists of Non-ferromagnetic metals (metals which do not exhibit strong attraction to magnets and do not retain magnetization such as iron). We used #2 aluminum Standoffs, #6 brass hardware, and stainless steel (#2) screws, and built it on a small piece of perf board (the 0.1" holes help alignment).  The magnet disc was held to the brass screwhead with some hot-melt glue, not a perfect alignmment but it does seem to work ok. I would not use this as a real position sensor holder. possily a modified potentiometer would be better.
+<p align="center">
+  <img src="resources/20260513_103718.jpg" width="200" alt="Position Sensor Test Assy.Details">
+</p>
 
 ## 1. Core Objectives
 
