@@ -58,15 +58,16 @@ A modular weather station using Davis mechanical components, Teensy + RFM69 tele
   <img src="resources/20260513_103645.jpg" width="350" alt="Protoboard Assy.">
 </p>
 
-I needed a simple Test jig for testing the magnetic position sensor, mounts on the AS5048 breakout board. It is primitve but it works for testing. For example the position sensor software finds the base position, in the case of the Davis ISS it is 90-degrees due to the counterweight to balance the wind direction pointer, as the power is first turned on the software must do this calibration.
+I needed a simple Test jig for testing the magnetic position sensor, mounts on the AS5048 breakout board. It is primitve but it works for testing. For example the position sensor software finds the base position, in the case of the Davis ISS it is 90-degrees due to the counterweight to balance the wind direction pointer, as the power is first turned on the software must do this calibration. (see direction sensor assembly picture below) 
 
 <p align="center">
   <img src="resources/20260513_103700.jpg" width="200" alt="Position Sensor Test Assy.">
 </p>
-This assemby consists of Non-ferromagnetic metals (metals which do not exhibit strong attraction to magnets and do not retain magnetization such as iron). We used #2 aluminum Standoffs, #6 brass hardware, and stainless steel (#2) screws, and built it on a small piece of perf board (the 0.1" holes help alignment).  The magnet disc was held to the brass screwhead with some hot-melt glue, not a perfect alignmment but it does seem to work ok. I would not use this as a real position sensor holder. possily a modified potentiometer would be better.
+This assemby consists of Non-ferromagnetic metals (metals which do not exhibit strong attraction to magnets and do not retain magnetization such as iron). We used #2 aluminum Standoffs, #6 brass hardware, and stainless steel (#2) screws, and built it on a small piece of perf board (the 0.1" holes help alignment).  The magnet disc was held to the brass screwhead with some hot-melt glue, not a perfect alignmment but it does seem to work ok. I would not use this as a real position sensor holder - possibly a modified potentiometer would be better.
 <p align="center">
   <img src="resources/20260513_103718.jpg" width="200" alt="Position Sensor Test Assy.Details">
 </p>
+The sensor simply needs to mount above the rotating disc magnet (As shown in the sensor assemby picure below) using the existiing mounting standoffs that the exististing transmitter now uses, putting our sensor in the center between these two mounting points should (hopefuly!)  make the mounting straight forward. 
 
 ## 1. Core Objectives
 
@@ -83,7 +84,7 @@ This assemby consists of Non-ferromagnetic metals (metals which do not exhibit s
 - Use existing Davis ISS enclosure
 - The AS5600 12-bit Magnetic encoder must above direction sensor
   <p align="center">
-  <img src="resources/davis_wind_direction_sensoe.jpg" width="225" alt="wind directio sensor">
+  <img src="resources/Wind_Direction_Sensor_Assy.jpg" width="225" alt="wind direction sensor">
 </p>
   
 - Wind Speed uses Vantage Vue Wind Speed Cartridge must mount TI DRV5033 Hall Sensor Switch near magnet.
